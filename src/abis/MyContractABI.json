@@ -1,0 +1,722 @@
+[
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address[]",
+				"name": "_users",
+				"type": "address[]"
+			}
+		],
+		"name": "addToWhitelist",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			}
+		],
+		"name": "claimTokens",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_tokenAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "_tokenId",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_expirationTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_totalTokens",
+				"type": "uint256"
+			},
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "conditionTokenAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "conditionMinBalance",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct AirdropSystem.Condition[]",
+				"name": "_conditions",
+				"type": "tuple[]"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_firstClaimPercentage",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_secondClaimPercentage",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_otherClaimPercentage",
+				"type": "uint256"
+			}
+		],
+		"name": "createAirdrop",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "OwnableInvalidOwner",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "OwnableUnauthorizedAccount",
+		"type": "error"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "airdropId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "tokenAddress",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "tokenId",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "expirationTime",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "totalTokens",
+				"type": "uint256"
+			}
+		],
+		"name": "AirdropCreated",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			}
+		],
+		"name": "deactivateAirdrop",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "previousOwner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "OwnershipTransferred",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address[]",
+				"name": "_users",
+				"type": "address[]"
+			}
+		],
+		"name": "removeFromWhitelist",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "renounceOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "airdropId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "claimant",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "TokensClaimed",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			}
+		],
+		"name": "withdrawRemainingTokens",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "airdropCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "airdrops",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "tokenAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "tokenId",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "expirationTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalTokens",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "claimedTokens",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isActive",
+				"type": "bool"
+			},
+			{
+				"internalType": "address",
+				"name": "creator",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "firstClaimPercentage",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "secondClaimPercentage",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "otherClaimPercentage",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "claimCount",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "_user",
+				"type": "address"
+			}
+		],
+		"name": "canClaim",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			}
+		],
+		"name": "getAirdropDetails",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "tokenAddress",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "tokenId",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "expirationTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "totalTokens",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "claimedTokens",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isActive",
+				"type": "bool"
+			},
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "conditionTokenAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "conditionMinBalance",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct AirdropSystem.Condition[]",
+				"name": "conditions",
+				"type": "tuple[]"
+			},
+			{
+				"internalType": "uint256",
+				"name": "firstClaimPercentage",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "secondClaimPercentage",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "otherClaimPercentage",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_creator",
+				"type": "address"
+			}
+		],
+		"name": "getAirdropsByCreator",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "address[]",
+				"name": "tokenAddresses",
+				"type": "address[]"
+			},
+			{
+				"internalType": "string[]",
+				"name": "tokenIds",
+				"type": "string[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "expirationTimes",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "totalTokens",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "claimedTokens",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "bool[]",
+				"name": "isActive",
+				"type": "bool[]"
+			},
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "conditionTokenAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "conditionMinBalance",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct AirdropSystem.Condition[][]",
+				"name": "conditions",
+				"type": "tuple[][]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "firstClaimPercentages",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "secondClaimPercentages",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "otherClaimPercentages",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getAllAirdropDetails",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "ids",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "address[]",
+				"name": "tokenAddresses",
+				"type": "address[]"
+			},
+			{
+				"internalType": "string[]",
+				"name": "tokenIds",
+				"type": "string[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "expirationTimes",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "totalTokens",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "claimedTokens",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "bool[]",
+				"name": "isActive",
+				"type": "bool[]"
+			},
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "conditionTokenAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "conditionMinBalance",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct AirdropSystem.Condition[][]",
+				"name": "conditions",
+				"type": "tuple[][]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "firstClaimPercentages",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "secondClaimPercentages",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "otherClaimPercentages",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getAllAirdropIds",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_user",
+				"type": "address"
+			}
+		],
+		"name": "getEligibleAirdrops",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "id",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "tokenId",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "expirationTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalTokens",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "claimedTokens",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isActive",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "claimableAmount",
+						"type": "uint256"
+					},
+					{
+						"components": [
+							{
+								"internalType": "address",
+								"name": "conditionTokenAddress",
+								"type": "address"
+							},
+							{
+								"internalType": "uint256",
+								"name": "conditionMinBalance",
+								"type": "uint256"
+							}
+						],
+						"internalType": "struct AirdropSystem.Condition[]",
+						"name": "conditions",
+						"type": "tuple[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "firstClaimPercentage",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "secondClaimPercentage",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "otherClaimPercentage",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isWhitelisted",
+						"type": "bool"
+					}
+				],
+				"internalType": "struct AirdropSystem.AirdropDetails[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]

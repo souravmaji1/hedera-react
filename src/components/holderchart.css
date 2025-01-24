@@ -1,0 +1,279 @@
+/* src/components/holderchart.css */
+
+/* Contenedor del gráfico */
+.chart-container {
+  width: 100%;
+  margin: 2rem 0;
+  background-color: #1c1f24; /* Fondo oscuro */
+  border: 1px solid #00ffc8; /* Borde cian */
+  box-shadow: 0 0 10px #00ffc8; /* Efecto glow */
+  border-radius: 12px;
+  padding: 1rem;
+  position: relative; /* Para posicionar correctamente los elementos hijos */
+}
+
+/* Título del gráfico */
+.chart-title {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #00ffc8;
+  margin-bottom: 1rem;
+}
+
+/* Contenedor de métricas */
+.metrics-container {
+  display: flex;
+  justify-content: center; /* Centra las métricas horizontalmente */
+  align-items: center;     /* Alinea verticalmente en el centro */
+  gap: 2rem;               /* Espacio entre las métricas */
+  margin-bottom: 1rem;     /* Espacio debajo del contenedor de métricas */
+  flex-wrap: nowrap;       /* Evita que las métricas se envuelvan a una nueva línea */
+}
+
+/* Estilos para cada métrica */
+.metric {
+  position: relative;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer; /* Cambiado a pointer para indicar interactividad */
+  display: flex;
+  align-items: center;
+}
+
+/* Icono de información */
+.info-icon {
+  margin-left: 0.5rem;
+  color: #00ffc8;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.info-icon:hover {
+  color: #00ffc8;
+}
+
+/* Pop-up informativo */
+.popup {
+  position: absolute;
+  top: 2rem; /* Posiciona el pop-up debajo del icono */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border: 1px solid #00ffc8;
+  border-radius: 8px;
+  white-space: nowrap;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Animación para el pop-up */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Contenedor del desplegable */
+.dropdown-container {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.dropdown-button {
+  background-color: #4bc0c0;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.dropdown-button:hover {
+  background-color: #3da8a8;
+  transform: translateY(-2px);
+}
+
+.dropdown-content {
+  background-color: #2c2f34;
+  color: #fff;
+  padding: 1rem;
+  border: 1px solid #00ffc8;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Contenedor de botones */
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+/* Botones de cambio de tipo de gráfico */
+.chart-button {
+  background-color: #4bc0c0;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.chart-button:hover {
+  background-color: #3da8a8;
+  transform: translateY(-2px);
+}
+
+/* Clase activa para indicar el tipo de gráfico seleccionado */
+.chart-button.active {
+  background-color: #008fee;
+}
+
+/* Botón para reiniciar el zoom y restaurar las wallets */
+.reset-zoom-button {
+  background-color: #ff6666; /* Rojo suave */
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.reset-zoom-button:hover {
+  background-color: #ff4d4d;
+  transform: translateY(-2px);
+}
+
+/* Asegurar que el canvas del gráfico ocupe todo el contenedor */
+.chart-container canvas {
+  width: 100% !important;
+  height: 250px !important; /* Ajusta la altura según tus necesidades */
+}
+
+/* Leyenda Personalizada */
+.custom-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin: 0.25rem 0.5rem;
+}
+
+.legend-color {
+  width: 15px;
+  height: 15px;
+  display: inline-block;
+  margin-right: 0.5rem;
+  border-radius: 3px;
+}
+
+.legend-label {
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+/* Responsividad para dispositivos móviles */
+@media (max-width: 768px) {
+  .chart-container {
+    padding: 0.5rem;
+  }
+
+  .chart-title {
+    font-size: 1.2rem;
+  }
+
+  .metrics-container {
+    flex-direction: column; /* Cambia a columna en pantallas pequeñas */
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .metric {
+    font-size: 0.9rem;
+  }
+
+  .chart-container canvas {
+    height: 300px !important; /* Reducir altura en móviles */
+  }
+
+  .chart-button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .reset-zoom-button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .legend-label {
+    font-size: 0.8rem;
+  }
+
+  .popup {
+    top: 2.5rem; /* Ajusta la posición del pop-up */
+  }
+}
+
+@media (max-width: 480px) {
+  .chart-container canvas {
+    height: 250px !important; /* Reducir aún más la altura en pantallas muy pequeñas */
+  }
+
+  .chart-title {
+    font-size: 1rem;
+  }
+
+  .chart-button {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .reset-zoom-button {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .legend-label {
+    font-size: 0.7rem;
+  }
+
+  .popup {
+    top: 3rem; /* Ajusta aún más para pantallas muy pequeñas */
+    font-size: 0.8rem;
+  }
+}
+
+/* Estilos para el desplegable en pantallas muy pequeñas */
+@media (max-width: 320px) {
+  .dropdown-content {
+    font-size: 0.7rem;
+  }
+}

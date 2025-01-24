@@ -1,0 +1,97 @@
+/* src/components/AirTool.css */
+
+.airtool-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 1rem;
+}
+
+.airtool-card {
+  background-color: #1c1c1c;
+  border: 1px solid #00ffc8;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 0 10px #00ffc8;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-field {
+  padding: 0.75rem;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background-color: #24272b;
+  color: #fff;
+}
+
+button {
+  padding: 0.75rem;
+  background-color: #00ffc8;
+  border: none;
+  border-radius: 8px;
+  color: #000;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:hover {
+  background-color: #00e0b8;
+}
+
+.percentage-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background-color: #2c2c2c;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.conditions-section {
+  background-color: #2c2c2c;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.condition-item {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.condition-input {
+  flex: 1;
+}
+
+.alert-error {
+  background-color: #ff4d4d;
+  color: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.alert-status {
+  background-color: #2d2d2d;
+  color: #fff;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.loader-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

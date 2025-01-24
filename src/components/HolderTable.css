@@ -1,0 +1,22 @@
+/* src/components/HolderTable.css */
+
+.pagination-button {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #00ffc8;
+  border: 2px solid #00ffc8;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pagination-button:hover:not(:disabled) {
+  background-color: #00ffc8;
+  color: #000;
+  transform: scale(1.05);
+}
+
+.pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

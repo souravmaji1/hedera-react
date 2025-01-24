@@ -1,0 +1,187 @@
+/* Contenedor principal de la sección */
+.wallet-tracker-container {
+    width: 100%;
+    max-width: 900px;            /* Ajusta el ancho máximo */
+    margin: 2rem auto;           /* Centrar horizontalmente y dar margen vertical */
+    background-color: #1c1f24;   /* Fondo oscuro */
+    border: 1px solid #00ffc8;   /* Borde cian */
+    box-shadow: 0 0 10px #00ffc8;/* Efecto glow */
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  
+  /* Título principal */
+  .wallet-tracker-title {
+    text-align: center;
+    font-size: 1.8rem;
+    color: #00ffc8;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 5px rgba(0, 255, 200, 0.3);
+  }
+  
+  /* Contenedor general de inputs (dropdown + manual) */
+  .input-container {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    color: #fff;
+    font-size: 1rem;
+  }
+  
+  /* Label para inputs */
+  .input-container label {
+    margin-bottom: 0.5rem;
+    color: #00ffc8;
+    font-weight: bold;
+  }
+  
+  /* Sección de input manual */
+  .manual-wallet {
+    margin-top: 1rem; /* Separar un poco del dropdown */
+  }
+  
+  /* Agrupación de input + botón "Obtener Tokens" */
+  .manual-input-group {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+  
+  /* Campos de entrada de texto */
+  .input-field {
+    background-color: #1c1f24;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 0.5rem;
+    border-radius: 8px;
+    width: 100%;
+  }
+  
+  /* Botón para disparar la consulta */
+  .btn-fetch {
+    background-color: #00ffc8;
+    color: #000;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s, transform 0.3s;
+  }
+  
+  .btn-fetch:hover:not(:disabled) {
+    background-color: #00e6b2; /* Un poco más oscuro */
+    transform: translateY(-2px);
+  }
+  
+  .btn-fetch:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  /* Sección donde se muestran los resultados (FT / NFT) */
+  .results-container {
+    margin-top: 1.5rem;
+  }
+  
+  /* Bloque para la tabla de tokens FT */
+  .ft-tokens-table,
+  .nft-tokens-table {
+    margin-bottom: 2rem;
+  }
+  
+  /* Título de subtabla */
+  .ft-tokens-table h2,
+  .nft-tokens-table h2 {
+    margin-bottom: 0.75rem;
+    color: #00ffc8;
+    text-shadow: 0 0 2px rgba(0, 255, 200, 0.3);
+    font-size: 1.3rem;
+  }
+  
+  /* Tablas */
+  .ft-tokens-table table,
+  .nft-tokens-table table {
+    width: 100%;
+    border-collapse: collapse; /* Quitar bordes dobles */
+  }
+  
+  /* Encabezado de tablas */
+  .ft-tokens-table th,
+  .nft-tokens-table th {
+    background-color: #00ffc8;
+    color: #000;
+    font-weight: bold;
+    padding: 0.75rem;
+    border: 1px solid #00ffc8;
+  }
+  
+  /* Filas de datos */
+  .ft-tokens-table td,
+  .nft-tokens-table td {
+    padding: 0.75rem;
+    border: 1px solid #333;
+    color: #fff;
+    background-color: #1c1f24;
+    text-align: center; /* Ajusta según necesites: left, center, right */
+  }
+  
+  /* Mensaje de carga */
+  .wallet-tracker-container p {
+    text-align: center;
+    color: #fff;
+    font-size: 1rem;
+  }
+  
+  /* Responsividad para tablets y pantallas pequeñas */
+  @media (max-width: 768px) {
+    .wallet-tracker-container {
+      padding: 1rem;
+    }
+  
+    .wallet-tracker-title {
+      font-size: 1.4rem;
+    }
+  
+    .input-field {
+      font-size: 0.9rem;
+    }
+  
+    .btn-fetch {
+      font-size: 0.9rem;
+      padding: 0.4rem 0.8rem;
+    }
+  
+    .ft-tokens-table h2,
+    .nft-tokens-table h2 {
+      font-size: 1.1rem;
+    }
+  
+    /* Ajusta tamaño de tabla en móviles, se puede convertir en scroll horizontal */
+    .ft-tokens-table table,
+    .nft-tokens-table table {
+      font-size: 0.85rem;
+    }
+  }
+  
+  /* Responsividad para smartphones (pantallas muy pequeñas) */
+  @media (max-width: 480px) {
+    .wallet-tracker-container {
+      margin: 1rem auto;
+      padding: 0.8rem;
+    }
+  
+    .manual-input-group {
+      flex-direction: column;
+    }
+  
+    .wallet-tracker-title {
+      font-size: 1.2rem;
+    }
+  
+    .ft-tokens-table h2,
+    .nft-tokens-table h2 {
+      font-size: 1rem;
+    }
+  }
+  

@@ -1,0 +1,289 @@
+.navigation-bar {
+  display: flex;
+  align-items: center;
+  background-color: #1a1a1a;
+  padding: 10px 50px; /* Se aplica en escritorios */
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 100;
+  border: none;
+  box-shadow: none;
+  transition: background 0.5s;
+  justify-content: flex-start;
+}
+
+/* Logo centrado */
+.nav-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Ajuste de tamaño del logo */
+.nav-logo {
+  height: 50px; /* En escritorio */
+}
+
+/* Eliminar bordes y outline en todo */
+.navigation-bar * {
+  border: none;
+  outline: none;
+}
+
+.nav-left,
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.nav-left {
+  margin-right: 0;
+}
+
+.nav-right {
+  margin-left: auto;
+}
+
+/* Botones */
+.nav-button {
+  background-color: transparent;
+  color: #00ffc8;
+  border: 2px solid #00ffc8;
+  padding: 10px 20px;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+.nav-button:hover {
+  background-color: #00ffc8;
+  color: #000;
+  transform: scale(1.05);
+  box-shadow: 0 0 10px #00ffc8, 0 0 20px #00ffc8;
+}
+
+.nav-button.active {
+  background-color: #00ffc8;
+  color: #000;
+}
+
+/* Línea gris entre botones en menú móvil */
+.divider {
+  width: 90%;
+  border: 0;
+  height: 1px;
+  background: #ccc;
+  margin: 5px 0;
+}
+
+/* Botón de hamburguesa */
+.mobile-menu-button {
+  display: none; /* Oculto en escritorio */
+  cursor: pointer;
+  margin-right: 20px;
+}
+
+.hamburger {
+  width: 25px;
+  height: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hamburger span {
+  display: block;
+  height: 3px;
+  width: 100%;
+  background: #00ffc8;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+}
+
+.hamburger.open span:nth-child(1) {
+  transform: translateY(8.5px) rotate(45deg);
+}
+
+.hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.open span:nth-child(3) {
+  transform: translateY(-8.5px) rotate(-45deg);
+}
+
+/* Menú desplegable móvil */
+.mobile-dropdown {
+  position: absolute;
+  /* Ajusta este top a la misma altura que la navbar */
+  top: 60px;
+  left: 0;
+  width: 100%;
+  background-color: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Eliminamos espacios extra */
+  margin: 0;
+  padding: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+  animation: slideDown 0.3s ease-in-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Ajustes para pantallas <= 768px (móvil) */
+@media (max-width: 768px) {
+  .navigation-bar {
+    /* Definimos altura fija en móvil: 60px */
+    height: 60px;
+    /* Ajustamos padding horizontalmente,
+       pero quitamos el padding vertical para
+       que la altura sea exactamente 60px */
+    padding: 0 20px;
+  }
+
+  /* Ajustamos el tamaño del logo en móvil */
+  .nav-logo {
+    height: 40px;
+  }
+
+  /* Mostramos el botón de hamburguesa */
+  .mobile-menu-button {
+    display: block;
+    margin: 0; /* Eliminar margen adicional */
+  }
+
+  .nav-left,
+  .nav-right {
+    display: none; /* Se ocultan botones de escritorio */
+  }
+
+  /* Botones dentro del menú móvil */
+  .mobile-dropdown .nav-button {
+    width: 90%;
+    text-align: center;
+    padding: 10px 0;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid #333;
+  }
+
+  .mobile-dropdown .nav-button:last-child {
+    border-bottom: none;
+  }
+
+  /* Dropdowns anidados en móvil */
+  .mobile-tracker-dropdown,
+  .mobile-claimdrops-dropdown,
+  .mobile-admin-dropdown {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .mobile-dropdown-menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 90%;
+    background-color: #24272b;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .mobile-dropdown-menu.centered {
+    text-align: center;
+  }
+
+  .mobile-dropdown-menu li {
+    padding: 10px;
+    color: #00ffc8;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    text-align: center;
+  }
+
+  .mobile-dropdown-menu li:hover {
+    background-color: #333;
+  }
+}
+
+/* Dropdown TRACKER, CLAIMDROPS y ADMIN en escritorio */
+.tracker-dropdown,
+.claimdrops-dropdown,
+.admin-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.tracker-dropdown .dropdown-menu,
+.claimdrops-dropdown .dropdown-menu,
+.admin-dropdown .dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #24272b;
+  list-style: none;
+  padding: 10px 0;
+  margin: 0;
+  border-radius: 6px;
+  display: none;
+  min-width: 150px;
+  z-index: 1000;
+}
+
+.tracker-dropdown:hover .dropdown-menu,
+.claimdrops-dropdown:hover .dropdown-menu,
+.admin-dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+.dropdown-menu li {
+  padding: 10px 20px;
+  color: #00ffc8;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  text-align: center;
+}
+
+.dropdown-menu li:hover {
+  background-color: #333;
+}
+
+/* Modal Styles */
+.modal-body {
+  padding: 20px;
+  text-align: center;
+}
+
+.modal-body h2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.modal-body p {
+  margin-top: 10px;
+  font-size: 1.1rem;
+}

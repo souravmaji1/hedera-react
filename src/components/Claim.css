@@ -1,0 +1,59 @@
+/* src/components/Claim.css */
+.claim-container {
+    background-color: #1c1f24;
+    border: 1px solid #00ffc8;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 0 10px #00ffc8;
+    width: 100%;
+    max-width: 800px;
+    margin: 2rem auto;
+  }
+  
+  .section-title {
+    color: #00ffc8;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  
+  .section-subtitle {
+    color: #00ffc8;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .airdrops-list {
+    margin-top: 2rem;
+  }
+  
+  .airdrop-item {
+    background-color: #24272b;
+    border: 1px solid #00ffc8;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 0 5px #00ffc8;
+  }
+  
+  .airdrop-item p {
+    margin: 0.3rem 0;
+  }
+  
+  .conditions {
+    margin-top: 1rem;
+  }
+  
+  .condition-title {
+    font-weight: 600;
+    color: #00ffc8;
+  }
+  
+  .condition-item {
+    background-color: #1c1f24;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  

@@ -1,0 +1,531 @@
+/* src/styles.css */
+@font-face {
+  font-family: 'Apotek';
+  src: url('/public/fonts/Apotek_Light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Apotek';
+  src: url('/public/fonts/Apotek_Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Apotek';
+  src: url('/public/fonts/Apotek_Semibold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Apotek';
+  src: url('/public/fonts/Apotek_Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
+/* Reset de estilos básicos */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', sans-serif;
+  /*font-family: 'Apotek', sans-serif;*/
+  background: #0d0e11; /* Fondo oscuro */
+  color: #fff;
+  
+}
+
+
+  /* Títulos 
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Apotek', sans-serif;
+    font-weight: 700; /* Bold 
+  }
+
+  /* Subtítulos y elementos secundarios 
+  .subtitle, .secondary-text {
+    font-family: 'Apotek', sans-serif;
+    font-weight: 300; /* Light 
+  }
+
+  /* Texto destacado en párrafos 
+  p strong, .highlight {
+    font-family: 'Apotek', sans-serif;
+    font-weight: 600; /* Semibold 
+  }
+
+  /* Párrafos 
+  p, li, span {
+    font-family: 'Apotek', sans-serif;
+    font-weight: 400; /* Regular 
+  }
+
+  /* Otros ajustes de tipografía específicos 
+  blockquote {
+    font-family: 'Apotek', sans-serif;
+    font-weight: 300; /* Light para citas 
+    font-style: italic;
+  }
+
+  button {
+    font-family: 'Apotek', sans-serif;
+    font-weight: 600; /* Semibold para botones 
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Contenedor principal de la aplicación */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 70px;
+  padding: 15px 10px 30px;
+  min-height: 100vh;
+  
+}
+
+/* Título principal */
+.title {
+  font-size: 2rem;
+  color: #00ffc8; /* Color cian brillante */
+  margin-bottom: 1rem;
+  text-shadow: 0 0 5px #00ffc8;
+  text-align: center;
+}
+
+/* Contenedor de inputs */
+.input-container {
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 600px; /* Ancho fijo en desktop */
+  max-width: 90%; /* Ajuste en móviles */
+}
+
+.input-container label {
+  font-weight: bold;
+  color: #00ffc8;
+}
+
+.input-field {
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background-color: #1c1f24;
+  color: #ffffff; /* Mantener el color original */
+  transition: border 0.3s;
+}
+
+.input-field:focus {
+  border: 1px solid #00ffc8;
+  outline: none;
+}
+
+/* Botón para obtener balances */
+.btn-fetch {
+  background-color: #00ffc8;
+  border: none;
+  padding: 0.7rem 1.2rem;
+  border-radius: 25px;
+  cursor: pointer;
+  color: #000;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 255, 200, 0.2);
+}
+
+.btn-fetch:hover {
+  background-color: #00e6b3;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 8px rgba(0, 255, 200, 0.3);
+}
+
+/* Contenedor para entrada manual de tokens */
+.manual-token {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.manual-input-group {
+  display: flex;
+  flex-direction: column; /* Alinear en columna */
+  gap: 1rem;
+}
+
+/* Contenedor del balance */
+.balance-container {
+  margin-top: 0.5rem;
+}
+
+.balance-text {
+  font-size: 1.2rem;
+  color: #ffffff; /* Mantener el color original */
+}
+
+/* Tabla de balances */
+.table-container {
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #1c1f24;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table th,
+.table td {
+  padding: 0.8rem;
+  text-align: left;
+  border-bottom: 1px solid #333;
+}
+
+.table th {
+  background-color: #24272b;
+  color: #00ffc8;
+}
+
+.table td {
+  color: #ffffff; /* Mantener el color original */
+}
+
+.table tr:hover {
+  background-color: #333;
+}
+
+.chart-title {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #00ffc8;
+}
+
+/* Contenedor de información de ranking y otros boxes */
+.top-info-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columnas iguales */
+  gap: 1rem; /* Espacio entre cajas */
+  justify-content: center;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.wallet-label,
+.ranking-info-container,
+.chart-container {
+  background: #1c1f24;
+  border: 1px solid #00ffc8; /* Borde verde existente */
+  box-shadow: 0 0 10px #00ffc8; /* Efecto glow/neon */
+  border-radius: 12px;
+  padding: 1rem;
+  color: #ffffff; /* Mantener el color original */
+}
+
+.wallet-label strong,
+.ranking-info-container strong {
+  color: #00ffc8; /* Color verdoso para los nombres */
+  margin-bottom: 0.5rem;
+  font-size: 16px; /* Tamaño uniforme para los títulos */
+}
+
+.info-content {
+  font-size: 1.1rem;
+  text-align: center; /* Centrar el contenido */
+  color: #ffffff; /* Mantener el color original */
+}
+
+/* Contenedor del gráfico */
+.chart-container {
+  width: 100%;
+  margin-bottom: 2rem;
+  margin-top: 2rem;
+  background-color: #1c1f24; /* Fondo igual a los boxes */
+  border: 1px solid #00ffc8; /* Borde igual a los boxes */
+  box-shadow: 0 0 10px #00ffc8; /* Efecto glow/neon */
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+/* Asegurar que el contenido del gráfico tenga fondo transparente */
+.chart-container canvas,
+.chart-container svg {
+  background: transparent;
+}
+
+/* Eliminar saltos de línea para mantener la coherencia en dispositivos móviles */
+.wallet-label br {
+  display: none;
+}
+
+/* Estilos para la pantalla de bienvenida */
+.welcome-screen {
+  margin-top: 2rem;
+  padding: 1rem;
+  background-color: #24272b;
+  border-radius: 8px;
+  color: #00ffc8;
+  text-align: center;
+  box-shadow: 0 0 10px rgba(0, 255, 200, 0.2);
+}
+
+/* Contenedor para FT y NFT */
+.ft-nft-container {
+  width: 100%;
+  max-width: 90%;
+  margin: 2rem auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Centrar todo el contenido */
+}
+
+/* Nueva Sección de Información */
+.info-section {
+  display: flex;
+  width: 100%;
+  max-width: 800px;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Centrar horizontalmente */
+}
+
+.info-label {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.info-content {
+  font-size: 1.1rem;
+  text-align: center; /* Centrar el contenido */
+  color: #ffffff; /* Mantener el color original */
+}
+
+/* Ajustes para Ranking Info */
+.ranking-info-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Media Queries para pantallas pequeñas */
+@media (max-width: 768px) {
+  /* Ocultar secciones izquierda y derecha en móviles */
+  .nav-left,
+  .nav-right {
+    display: none;
+  }
+  .top-info-row {
+    grid-template-columns: 1fr; /* Cambiar a una columna en móviles */
+    gap: 1rem; /* Ajustar el espacio entre elementos */
+  }
+  .wallet-label {
+    min-width: 140px; /* Reducir el ancho en pantallas más pequeñas */display: flex;
+    align-items: baseline; /* Alinear basado en la línea base del texto */
+    gap: 0.5rem; /* Espacio entre el icono y el texto */
+  }
+
+  .ranking-info-container {
+    max-width: 100%; /* Ajustar al ancho completo */
+  }
+
+  /* Mostrar botón de hamburguesa */
+  .mobile-menu-button {
+    display: relative;
+    margin-left: 10px; /* Añadir margen a la izquierda */
+  }
+
+  /* Mostrar el logo en móviles */
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* Ajustar la barra de navegación */
+  .navigation-bar {
+    padding: 10px 20px; /* Reducir el padding en pantallas pequeñas */
+    justify-content: flex-start; /* Alinear elementos al inicio */
+    width: 100%;
+    max-width: none; /* Eliminar el ancho máximo para pantallas pequeñas */
+  }
+
+  /* Ajustes para el menú desplegable móvil */
+  .mobile-dropdown .nav-button {
+    width: 90%;
+    text-align: center;
+    padding: 10px 0;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid #333;
+  }
+
+  .mobile-dropdown .nav-button:last-child {
+    border-bottom: none;
+  }
+
+  /* Asegurar que el logo permanezca visible en móviles */
+  .nav-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* Asegurar que los elementos del menú desplegable se centren */
+  .mobile-dropdown {
+    top: 70px; /* Ajustar según la altura de la navbar */
+  }
+
+  /* Ajustes para info-section en móviles */
+  .info-section {
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    gap: 1rem;
+  }
+}
+
+/* Media query para dispositivos móviles */
+@media (max-width: 600px) {
+  .modal-content {
+    width: 90%;
+    padding: 20px;
+  }
+  .top-info-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Adaptar columnas según espacio */
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+    width: 100%;
+  }
+
+  .wallet-label {
+    min-width: 140px; /* Reducir el ancho en pantallas más pequeñas */
+    display: flex;
+  align-items: baseline; /* Alinear basado en la línea base del texto */
+  gap: 0.5rem; /* Espacio entre el icono y el texto */
+  }
+
+  .ranking-info-container {
+    max-width: 100%; /* Ajustar al ancho completo */
+  }
+
+  .info-icon img {
+    width: 16px;
+    height: 16px;
+  }
+
+  .balance-section {
+    margin-top: 0.4rem;
+  }
+}
+
+/* Contenedor para el balance y el info-icon */
+.balance-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Centrar horizontalmente */
+  margin-top: 0.5rem; /* Espacio superior para separar del label */
+}
+
+/* Wrapper para el info-icon */
+.info-icon-wrapper {
+  margin-top: 0.3rem;
+  display: flex;
+  align-items: center; /* Centrar verticalmente */
+  justify-content: center; /* Centrar horizontalmente */
+}
+
+/* Estilos para el info-icon */
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  filter: drop-shadow(0 0 5px #00ffc8);
+}
+
+.info-icon img {
+  width: 18px;
+  height: 18px;
+}
+
+/* Estilos para la sección de Welcome Screen */
+.welcome-screen {
+  background-color: #24272b;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  color: #00ffc8;
+  margin: 1rem 0;
+}
+
+/* Contenedor para el Campo de Búsqueda */
+.search-container {
+  border-top: 10px solid #333; /* Añadir borde superior */
+  border-bottom: 10px solid #333; /* Añadir borde inferior */
+  padding: 10px 0;
+  width: 600px; /* Ancho fijo en desktop */
+  max-width: 90%; /* Ajuste en móviles */
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.search-container label {
+  font-weight: bold;
+  color: #00ffc8;
+}
+
+.search-container .input-field {
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background-color: #1c1f24;
+  color: #ffffff; /* Mantener el color original */
+  transition: border 0.3s;
+}
+
+.search-container .input-field:focus {
+  border: 1px solid #00ffc8;
+  outline: none;
+}
+
+/* Media Queries Ajustados para el Campo de Búsqueda */
+@media (max-width: 768px) {
+  .search-container {
+    max-width: 90%; /* Reducir el ancho en pantallas pequeñas */
+  }
+}
+
+@media (max-width: 600px) {
+  .search-container {
+    max-width: 90%; /* Reducir el ancho en pantallas pequeñas */
+  }
+}

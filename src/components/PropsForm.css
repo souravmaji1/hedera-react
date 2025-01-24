@@ -1,0 +1,99 @@
+/* src/components/PropsForm.css */
+.props-form-container {
+    max-width: 800px;
+    margin: 40px auto; /* Ajusta el margen superior para evitar la barra de navegación fija */
+    padding: 20px;
+    background-color: #1c1f24;
+    color: #fff;
+    border-radius: 8px;
+  }
+  
+  .props-form-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .tab-menu {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  
+  .tab-button {
+    background-color: transparent;
+    border: 2px solid #00ffc8;
+    color: #00ffc8;
+    padding: 10px 20px;
+    margin: 0 10px;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .tab-button.active,
+  .tab-button:hover {
+    background-color: #00ffc8;
+    color: #000;
+  }
+  
+  .props-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .props-form label {
+    font-weight: bold;
+  }
+  
+  .props-form input,
+  .props-form textarea {
+    padding: 10px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background-color: #2a2d34;
+    color: #fff;
+  }
+  
+  .props-form textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+  
+  .checkbox-group {
+    display: flex;
+    gap: 20px;
+  }
+  
+  .checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .submit-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #00ffc8;
+    color: #000;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+  }
+  
+  .submit-button:hover {
+    background-color: #00e5b8;
+  }
+  
+  .success-message {
+    color: #4caf50;
+    text-align: center;
+  }
+  
+  .error-message {
+    color: #f44336;
+    text-align: center;
+  }
+  
