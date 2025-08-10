@@ -16,7 +16,8 @@ import { ethers } from 'ethers';
 import CONTRACT_ABI from './abi.json';
 
 const DECIMALS = 8; // Decimal places for the token
-const CONTRACT_ID = ContractId.fromString("0.0.6536815"); // Replace with your AirdropSystem contract ID
+const CONTRACT_ID = ContractId.fromString("0.0.6540408"); // Replace with your AirdropSystem contract ID
+const CONTRACT_ADDRESS = "0xb3cd9531395a734bab3d1f014ff3c6c21cb01064"; // Replace with your contract's Solidity address
 
 export default function AirdropSystem() {
   // Wallet connection state
@@ -59,10 +60,25 @@ export default function AirdropSystem() {
   const { readContract } = useReadContract();
   const { approve: approveToken } = useApproveTokenAllowance();
   const { approve: approveNft } = useApproveTokenNftAllowance();
- 
-  // Add these constants at the top of your component
-const CONTRACT_ADDRESS = "0xB59e170EfE925E770DC0b20342546625C6E13B58"; // Replace with your contract's Solidity address
-const CONTRACT_ID = ContractId.fromString("0.0.6537444"); // Hedera Contract IDhttps://testnet.hashio.io/api
+
+  const getEvmAddressFromAccountId = async (accountId) => {
+  try {
+    const response = await fetch(`https://testnet.mirrornode.hedera.com/api/v1/accounts/${accountId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch account info: ${response.status}`);
+    }
+    const data = await response.json();
+    
+    if (!data.evm_address) {
+      throw new Error('EVM address not found for this account');
+    }
+    
+    return data.evm_address;
+  } catch (error) {
+    console.error('Error fetching EVM address:', error);
+    throw error;
+  }
+}
 
   // Connect wallet handler
   const handleConnectWallet = async () => {
@@ -84,78 +100,63 @@ const CONTRACT_ID = ContractId.fromString("0.0.6537444"); // Hedera Contract IDh
     }
   };
 
-  // Add this function to your component or a separate utilities file
-async function fetchTokenInfo(tokenId) {
-  try {
-    const response = await fetch(`https://testnet.mirrornode.hedera.com/api/v1/tokens/${tokenId}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch token info: ${response.status}`);
-    }
-    const data = await response.json();
-    return {
-      decimals: data.decimals || 8, // Default to 8 if not specified
-      symbol: data.symbol,
-      name: data.name
-    };
-  } catch (error) {
-    console.error('Error fetching token info:', error);
-    // Fallback to 8 decimals if API fails
-    return { decimals: 8, symbol: '', name: '' };
-  }
-}
+  // Helper function to get the provider and contract instance
+  const getContractInstance = () => {
+    const provider = new ethers.JsonRpcProvider("https://testnet.hashio.io/api");
+    return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+  };
 
   // Approve tokens handler
   const handleApproveTokens = async () => {
-  if (!tokenAddress) return;
+    if (!tokenAddress) return;
 
-  try {
-    setLoading(true);
-    setError('');
-    setTransactionStatus('Approving tokens...');
+    try {
+      setLoading(true);
+      setError('');
+      setTransactionStatus('Approving tokens...');
 
-    // Fetch token decimals
-    const tokenInfo = await fetchTokenInfo(tokenAddress);
-    const decimals = tokenInfo.decimals;
-    const multiplier = 10 ** decimals;
+      const tokenInfo = await fetchTokenInfo(tokenAddress);
+      const decimals = tokenInfo.decimals;
+      const multiplier = 10 ** decimals;
 
-    if (airdropType === 'ERC20') {
-      const amountInDecimals = Math.floor(Number(totalTokens) * multiplier);
-      await approveToken(
-        [{
-          tokenId: tokenAddress,
-          amount: amountInDecimals
-        }],
-        CONTRACT_ID,
-        {
-          gas: 800000,
-          maxPriorityFeePerGas: 1000000000,
-        }
-      );
-    } else {
-      const serials = nftSerials.split(',').map(s => parseInt(s.trim()));
-      await approveNft(
-        serials.map(serial => ({
-          tokenId: tokenAddress,
-          serial: serial
-        })),
-        CONTRACT_ID,
-        {
-          gas: 800000,
-          maxPriorityFeePerGas: 1000000000,
-        }
-      );
+      if (airdropType === 'ERC20') {
+        const amountInDecimals = Math.floor(Number(totalTokens) * multiplier);
+        await approveToken(
+          [{
+            tokenId: tokenAddress,
+            amount: amountInDecimals
+          }],
+          CONTRACT_ID,
+          {
+            gas: 800000,
+            maxPriorityFeePerGas: 1000000000,
+          }
+        );
+      } else {
+        const serials = nftSerials.split(',').map(s => parseInt(s.trim()));
+        await approveNft(
+          serials.map(serial => ({
+            tokenId: tokenAddress,
+            serial: serial
+          })),
+          CONTRACT_ID,
+          {
+            gas: 800000,
+            maxPriorityFeePerGas: 1000000000,
+          }
+        );
+      }
+
+      setTransactionStatus('Tokens approved successfully!');
+      return { success: true, decimals };
+    } catch (err) {
+      console.error('Token approval error:', err);
+      setError(`Token approval failed: ${err.message}`);
+      return { success: false, decimals: 8 };
+    } finally {
+      setLoading(false);
     }
-
-    setTransactionStatus('Tokens approved successfully!');
-    return { success: true, decimals };
-  } catch (err) {
-    console.error('Token approval error:', err);
-    setError(`Token approval failed: ${err.message}`);
-    return { success: false, decimals: 8 }; // Fallback to 8 decimals
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Create airdrop handler
   const handleCreateAirdrop = async () => {
@@ -169,75 +170,43 @@ async function fetchTokenInfo(tokenId) {
       return;
     }
 
-    if (airdropType === 'ERC20') {
-      if (!totalTokens) {
-        setError('Please specify total tokens for ERC20 airdrop.');
-        return;
-      }
+    if (airdropType === 'ERC20' && !totalTokens) {
+      setError('Please specify total tokens for ERC20 airdrop.');
+      return;
+    }
 
-      if (showPercentageRules) {
-        const firstPercentage = Number(firstClaimPercentage);
-        const secondPercentage = Number(secondClaimPercentage);
-        const otherPercentage = Number(otherClaimPercentage);
-
-        if (
-          isNaN(firstPercentage) ||
-          isNaN(secondPercentage) ||
-          isNaN(otherPercentage) ||
-          firstPercentage <= 0 ||
-          secondPercentage <= 0 ||
-          otherPercentage <= 0
-        ) {
-          setError('Percentages must be positive numbers.');
-          return;
-        }
-
-        const totalPercentage = firstPercentage + secondPercentage + otherPercentage;
-        if (totalPercentage > 100) {
-          setError('The sum of percentages must not exceed 100%.');
-          return;
-        }
-      }
-    } else {
-      if (!nftSerials) {
-        setError('Please specify NFT serials and token ID for ERC721 airdrop.');
-        return;
-      }
+    if (airdropType === 'ERC721' && !nftSerials) {
+      setError('Please specify NFT serials for ERC721 airdrop.');
+      return;
     }
 
     try {
-         const { success, decimals } = await handleApproveTokens();
-    if (!success) return;
-
-     const multiplier = 10 ** decimals;
-    
+      const { success, decimals } = await handleApproveTokens();
+      if (!success) return;
 
       setLoading(true);
       setError('');
       setTransactionStatus('Creating airdrop...');
 
-       const tokenAccountId = AccountId.fromString(tokenAddress);
-    const tokenSolidityAddress = `0x${tokenAccountId.toSolidityAddress()}`;
+      const tokenAccountId = AccountId.fromString(tokenAddress);
+     // const tokenSolidityAddress = `0x${tokenAccountId.toSolidityAddress()}`;
+      const tokenSolidityAddress  = await getEvmAddressFromAccountId(accountId.toString());
+      const expirationTimestamp = Math.floor(new Date(expirationTime).getTime() / 1000);
 
-    const expirationTimestamp = Math.floor(new Date(expirationTime).getTime() / 1000);
-   // const formattedConditions = conditions.map((condition) => ({
-    //  conditionTokenAddress: `0x${AccountId.fromString(condition.tokenAddress).toSolidityAddress()}`,
-    //  conditionMinBalance: Math.floor(Number(condition.minBalance) * multiplier)}));
-
- const formattedConditions = await Promise.all(conditions.map(async (condition) => {
-    const tokenInfo = await fetchTokenInfo(condition.tokenAddress);
-    const conditionDecimals = tokenInfo.decimals || 8;
-    const multiplier = 10 ** conditionDecimals;
-    
-    return {
-      conditionTokenAddress: `0x${AccountId.fromString(condition.tokenAddress).toSolidityAddress()}`,
-      conditionMinBalance: Math.floor(Number(condition.minBalance) * multiplier)
-    };
-  }));
-
+      const formattedConditions = await Promise.all(conditions.map(async (condition) => {
+        const tokenInfo = await fetchTokenInfo(condition.tokenAddress);
+        const conditionDecimals = tokenInfo.decimals || 8;
+        const multiplier = 10 ** conditionDecimals;
+        
+        return {
+          conditionType: condition.conditionType === 'NFT_COLLECTION' ? 1 : 0,
+          conditionTokenAddress: `0x${AccountId.fromString(condition.tokenAddress).toSolidityAddress()}`,
+          conditionMinBalance: Math.floor(Number(condition.minBalance) * multiplier)
+        };
+      }));
 
       if (airdropType === 'ERC20') {
-     const totalTokensInDecimals = Math.floor(Number(totalTokens) * multiplier);
+        const totalTokensInDecimals = Math.floor(Number(totalTokens) * (10 ** decimals));
         
         await writeContract({
           contractId: CONTRACT_ID,
@@ -299,16 +268,7 @@ async function fetchTokenInfo(tokenId) {
   };
 
   // Fetch airdrops created by the current user
- // Helper function to get the provider and contract instance
-const getContractInstance = () => {
-  // Use window.ethereum if available (MetaMask), otherwise use Hedera JSON-RPC endpoint
-  const provider = new ethers.JsonRpcProvider("https://testnet.hashio.io/api"); // Hedera mainnet JSON-RPC
-  
-  return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
-};
-
-// Fetch airdrops created by the current user
-const fetchMyAirdrops = async () => {
+  const fetchMyAirdrops = async () => {
   if (!isConnected || !accountId) return;
 
   try {
@@ -316,35 +276,56 @@ const fetchMyAirdrops = async () => {
     setError('');
     
     const contract = getContractInstance();
-    const accountSolidityAddress = `0x${AccountId.fromString(accountId.toString()).toSolidityAddress()}`;
+  //  const accountSolidityAddress = `0x${AccountId.fromString(accountId.toString()).toSolidityAddress()}`;
 
-    console.log(accountSolidityAddress);
+   const accountSolidityAddress  = await getEvmAddressFromAccountId(accountId.toString());
+
+    console.log(accountSolidityAddress)
     
-    // Call the contract function
     const result = await contract.getAirdropsByCreator(accountSolidityAddress);
-
-    console.log(result);
     
     // Convert the result to a more usable format
-    const formattedAirdrops = result.map(airdrop => ({
-      id: Number(airdrop[0]), // Convert BigInt to Number
-      tokenType: Number(airdrop[1]),
-      tokenAddress: airdrop[2],
-      tokenId: airdrop[3],
-      title: airdrop[4],
-      expirationTime: Number(airdrop[5]),
-      totalTokens: Number(airdrop[6]),
-      claimedTokens: Number(airdrop[7]),
-      isActive: airdrop[8],
-      firstClaimPercentage: Number(airdrop[11]),
-      secondClaimPercentage: Number(airdrop[12]),
-      otherClaimPercentage: Number(airdrop[13]),
-      conditions: airdrop[10].map(cond => ({
-        conditionTokenAddress: cond[0],
-        conditionMinBalance: Number(cond[1])
-      })),
-      availableNftIds: airdrop[15].map(id => Number(id))
-    }));
+    const formattedAirdrops = result.map(airdrop => {
+      // Extract conditions array properly
+      let conditions = [];
+      try {
+        conditions = airdrop[11].map(cond => ({
+          conditionType: Number(cond[0]),
+          conditionTokenAddress: cond[1],
+          conditionMinBalance: Number(cond[2])
+        }));
+      } catch (e) {
+        console.error('Error parsing conditions:', e);
+      }
+
+      // Extract available NFT IDs
+      let availableNftIds = [];
+      try {
+        availableNftIds = airdrop[16]?.map(id => Number(id)) || [];
+      } catch (e) {
+        console.error('Error parsing NFT IDs:', e);
+      }
+
+      return {
+        id: Number(airdrop[0]),
+        tokenType: Number(airdrop[1]),
+        tokenAddress: airdrop[2],
+        tokenId: airdrop[3],
+        title: airdrop[4],
+        expirationTime: Number(airdrop[5]),
+        totalTokens: Number(airdrop[6]),
+        claimedTokens: Number(airdrop[7]),
+        isActive: airdrop[8],
+        isPaused: airdrop[9],
+        claimableAmount: Number(airdrop[10]),
+        firstClaimPercentage: Number(airdrop[12]),
+        secondClaimPercentage: Number(airdrop[13]),
+        otherClaimPercentage: Number(airdrop[14]),
+        isWhitelisted: airdrop[15],
+        conditions: conditions,
+        availableNftIds: availableNftIds
+      };
+    });
 
     setMyAirdrops(formattedAirdrops);
   } catch (err) {
@@ -355,8 +336,8 @@ const fetchMyAirdrops = async () => {
   }
 };
 
-// Fetch eligible airdrops for the current user
-const fetchEligibleAirdrops = async () => {
+  // Fetch eligible airdrops for the current user
+  const fetchEligibleAirdrops = async () => {
   if (!isConnected || !accountId) return;
 
   try {
@@ -364,33 +345,53 @@ const fetchEligibleAirdrops = async () => {
     setError('');
     
     const contract = getContractInstance();
-    const accountSolidityAddress = `0x${AccountId.fromString(accountId.toString()).toSolidityAddress()}`;
+   // const accountSolidityAddress = `0x${AccountId.fromString(accountId.toString()).toSolidityAddress()}`;
+ const accountSolidityAddress  = await getEvmAddressFromAccountId(accountId.toString());
+
+    console.log(accountSolidityAddress)
     
-    // Call the contract function
     const result = await contract.getEligibleAirdrops(accountSolidityAddress);
+    console.log(result)
     
-    // Convert the result to a more usable format
-    const formattedAirdrops = result.map(airdrop => ({
-      id: Number(airdrop[0]),
-      tokenType: Number(airdrop[1]),
-      tokenAddress: airdrop[2],
-      tokenId: airdrop[3],
-      title: airdrop[4],
-      expirationTime: Number(airdrop[5]),
-      totalTokens: Number(airdrop[6]),
-      claimedTokens: Number(airdrop[7]),
-      isActive: airdrop[8],
-      claimableAmount: Number(airdrop[9]),
-      isWhitelisted: airdrop[14],
-      firstClaimPercentage: Number(airdrop[11]),
-      secondClaimPercentage: Number(airdrop[12]),
-      otherClaimPercentage: Number(airdrop[13]),
-      conditions: airdrop[10].map(cond => ({
-        conditionTokenAddress: cond[0],
-        conditionMinBalance: Number(cond[1])
-      })),
-      availableNftIds: airdrop[15].map(id => Number(id))
-    }));
+    const formattedAirdrops = result.map(airdrop => {
+      let conditions = [];
+      try {
+        conditions = airdrop[11].map(cond => ({
+          conditionType: Number(cond[0]),
+          conditionTokenAddress: cond[1],
+          conditionMinBalance: Number(cond[2])
+        }));
+      } catch (e) {
+        console.error('Error parsing conditions:', e);
+      }
+
+      let availableNftIds = [];
+      try {
+        availableNftIds = airdrop[16]?.map(id => Number(id)) || [];
+      } catch (e) {
+        console.error('Error parsing NFT IDs:', e);
+      }
+
+      return {
+        id: Number(airdrop[0]),
+        tokenType: Number(airdrop[1]),
+        tokenAddress: airdrop[2],
+        tokenId: airdrop[3],
+        title: airdrop[4],
+        expirationTime: Number(airdrop[5]),
+        totalTokens: Number(airdrop[6]),
+        claimedTokens: Number(airdrop[7]),
+        isActive: airdrop[8],
+        isPaused: airdrop[9],
+        claimableAmount: Number(airdrop[10]),
+        firstClaimPercentage: Number(airdrop[12]),
+        secondClaimPercentage: Number(airdrop[13]),
+        otherClaimPercentage: Number(airdrop[14]),
+        isWhitelisted: airdrop[15],
+        conditions: conditions,
+        availableNftIds: availableNftIds
+      };
+    });
 
     setEligibleAirdrops(formattedAirdrops);
   } catch (err) {
@@ -401,69 +402,57 @@ const fetchEligibleAirdrops = async () => {
   }
 };
 
-  // Add users to whitelist
-  const handleAddToWhitelist = async () => {
-    if (!selectedAirdrop || !whitelistAddresses) return;
-
+  // Pause an airdrop
+  const handlePauseAirdrop = async (airdropId) => {
     try {
       setLoading(true);
       setError('');
-      setTransactionStatus('Adding to whitelist...');
-
-      const addresses = whitelistAddresses.split(',').map(addr => addr.trim());
-      const formattedAddresses = addresses.map(addr => `0x${AccountId.fromString(addr).toSolidityAddress()}`);
+      setTransactionStatus('Pausing airdrop...');
 
       await writeContract({
         contractId: CONTRACT_ID,
         abi: CONTRACT_ABI,
-        functionName: 'addToWhitelist',
-        args: [selectedAirdrop.id, formattedAddresses],
+        functionName: 'pauseAirdrop',
+        args: [airdropId],
         metaArgs: {
           gas: 1000000,
           maxPriorityFeePerGas: 1000000000,
         },
       });
 
-      setTransactionStatus('Successfully added to whitelist!');
-      setWhitelistAddresses('');
-      fetchMyAirdrops(); // Refresh the airdrop list
+      setTransactionStatus('Airdrop paused successfully!');
+      fetchMyAirdrops();
     } catch (err) {
-      console.error('Error adding to whitelist:', err);
-      setError(`Failed to add to whitelist: ${err.message}`);
+      console.error('Error pausing airdrop:', err);
+      setError(`Failed to pause airdrop: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // Remove users from whitelist
-  const handleRemoveFromWhitelist = async () => {
-    if (!selectedAirdrop || !removeWhitelistAddresses) return;
-
+  // Resume an airdrop
+  const handleResumeAirdrop = async (airdropId) => {
     try {
       setLoading(true);
       setError('');
-      setTransactionStatus('Removing from whitelist...');
-
-      const addresses = removeWhitelistAddresses.split(',').map(addr => addr.trim());
-      const formattedAddresses = addresses.map(addr => `0x${AccountId.fromString(addr).toSolidityAddress()}`);
+      setTransactionStatus('Resuming airdrop...');
 
       await writeContract({
         contractId: CONTRACT_ID,
         abi: CONTRACT_ABI,
-        functionName: 'removeFromWhitelist',
-        args: [selectedAirdrop.id, formattedAddresses],
+        functionName: 'resumeAirdrop',
+        args: [airdropId],
         metaArgs: {
           gas: 1000000,
           maxPriorityFeePerGas: 1000000000,
         },
       });
 
-      setTransactionStatus('Successfully removed from whitelist!');
-      setRemoveWhitelistAddresses('');
-      fetchMyAirdrops(); // Refresh the airdrop list
+      setTransactionStatus('Airdrop resumed successfully!');
+      fetchMyAirdrops();
     } catch (err) {
-      console.error('Error removing from whitelist:', err);
-      setError(`Failed to remove from whitelist: ${err.message}`);
+      console.error('Error resuming airdrop:', err);
+      setError(`Failed to resume airdrop: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -488,7 +477,7 @@ const fetchEligibleAirdrops = async () => {
       });
 
       setTransactionStatus('Airdrop deactivated successfully!');
-      fetchMyAirdrops(); // Refresh the airdrop list
+      fetchMyAirdrops();
     } catch (err) {
       console.error('Error deactivating airdrop:', err);
       setError(`Failed to deactivate airdrop: ${err.message}`);
@@ -516,7 +505,7 @@ const fetchEligibleAirdrops = async () => {
       });
 
       setTransactionStatus('Tokens claimed successfully!');
-      fetchEligibleAirdrops(); // Refresh the eligible airdrops list
+      fetchEligibleAirdrops();
     } catch (err) {
       console.error('Error claiming tokens:', err);
       setError(`Failed to claim tokens: ${err.message}`);
@@ -525,9 +514,91 @@ const fetchEligibleAirdrops = async () => {
     }
   };
 
+  // Add users to whitelist
+  const handleAddToWhitelist = async () => {
+    if (!selectedAirdrop || !whitelistAddresses) return;
+
+    try {
+      setLoading(true);
+      setError('');
+      setTransactionStatus('Adding to whitelist...');
+
+    //  const addresses = whitelistAddresses.split(',').map(addr => addr.trim());
+     // const formattedAddresses = addresses.map(addr => `0x${AccountId.fromString(addr).toSolidityAddress()}`);
+
+      const addresses = whitelistAddresses.split(',').map(addr => addr.trim());
+    const formattedAddresses = await Promise.all(
+      addresses.map(async addr => await getEvmAddressFromAccountId(addr))
+    );
+
+      await writeContract({
+        contractId: CONTRACT_ID,
+        abi: CONTRACT_ABI,
+        functionName: 'addToWhitelist',
+        args: [selectedAirdrop.id, formattedAddresses],
+        metaArgs: {
+          gas: 1000000,
+          maxPriorityFeePerGas: 1000000000,
+        },
+      });
+
+      setTransactionStatus('Successfully added to whitelist!');
+      setWhitelistAddresses('');
+      fetchMyAirdrops();
+    } catch (err) {
+      console.error('Error adding to whitelist:', err);
+      setError(`Failed to add to whitelist: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Remove users from whitelist
+  const handleRemoveFromWhitelist = async () => {
+  if (!selectedAirdrop || !removeWhitelistAddresses) return;
+
+  try {
+    setLoading(true);
+    setError('');
+    setTransactionStatus('Removing from whitelist...');
+
+    // Split the input into individual account IDs
+    const addresses = removeWhitelistAddresses.split(',').map(addr => addr.trim());
+    
+    // Convert each account ID to EVM address using Mirror Node API
+    const formattedAddresses = await Promise.all(
+      addresses.map(async addr => await getEvmAddressFromAccountId(addr))
+    );
+
+    await writeContract({
+      contractId: CONTRACT_ID,
+      abi: CONTRACT_ABI,
+      functionName: 'removeFromWhitelist',
+      args: [selectedAirdrop.id, formattedAddresses],
+      metaArgs: {
+        gas: 1000000,
+        maxPriorityFeePerGas: 1000000000,
+      },
+    });
+
+    setTransactionStatus('Successfully removed from whitelist!');
+    setRemoveWhitelistAddresses('');
+    fetchMyAirdrops();
+  } catch (err) {
+    console.error('Error removing from whitelist:', err);
+    setError(`Failed to remove from whitelist: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
   // Condition management functions
   const addCondition = () => {
-    setConditions([...conditions, { tokenAddress: "", minBalance: "" }]);
+    setConditions([...conditions, { 
+      tokenAddress: "", 
+      minBalance: "", 
+      conditionType: "ERC20_BALANCE" 
+    }]);
   };
 
   const updateCondition = (index, field, value) => {
@@ -540,6 +611,23 @@ const fetchEligibleAirdrops = async () => {
     const updatedConditions = conditions.filter((_, i) => i !== index);
     setConditions(updatedConditions);
   };
+
+  // Fetch token info from mirror node
+  async function fetchTokenInfo(tokenId) {
+    try {
+      const response = await fetch(`https://testnet.mirrornode.hedera.com/api/v1/tokens/${tokenId}`);
+      if (!response.ok) throw new Error(`Failed to fetch token info: ${response.status}`);
+      const data = await response.json();
+      return {
+        decimals: data.decimals || 8,
+        symbol: data.symbol,
+        name: data.name
+      };
+    } catch (error) {
+      console.error('Error fetching token info:', error);
+      return { decimals: 8, symbol: '', name: '' };
+    }
+  }
 
   // Fetch data when wallet connects or tab changes
   useEffect(() => {
@@ -662,7 +750,7 @@ const fetchEligibleAirdrops = async () => {
                     disabled={!isConnected}
                   />
                 </div>
-               
+              
               </>
             )}
 
@@ -766,8 +854,25 @@ const fetchEligibleAirdrops = async () => {
 
               {conditions.map((condition, index) => (
                 <div key={index} className="condition-item bg-gray-800 p-4 rounded-lg border border-gray-700 mb-4">
+                  <div className="form-group mb-3">
+                    <label className="text-sm font-medium text-gray-300">Condition Type</label>
+                    <select
+                      value={condition.conditionType || 'ERC20_BALANCE'}
+                      onChange={(e) => updateCondition(index, 'conditionType', e.target.value)}
+                      className="input-field"
+                      disabled={!isConnected}
+                    >
+                      <option value="ERC20_BALANCE">Hold ERC20 Tokens</option>
+                      <option value="NFT_COLLECTION">Own NFT Collection</option>
+                    </select>
+                  </div>
+                  
                   <div className="form-group">
-                    <label className="text-sm font-medium text-gray-300">Condition Token Address (Hedera ID)</label>
+                    <label className="text-sm font-medium text-gray-300">
+                      {condition.conditionType === 'NFT_COLLECTION' ? 
+                        'NFT Collection Address (Hedera ID)' : 
+                        'Token Address (Hedera ID)'}
+                    </label>
                     <input
                       type="text"
                       value={condition.tokenAddress}
@@ -777,17 +882,23 @@ const fetchEligibleAirdrops = async () => {
                       disabled={!isConnected}
                     />
                   </div>
+                  
                   <div className="form-group">
-                    <label className="text-sm font-medium text-gray-300">Minimum Balance Required</label>
+                    <label className="text-sm font-medium text-gray-300">
+                      {condition.conditionType === 'NFT_COLLECTION' ? 
+                        'Minimum NFTs Required' : 
+                        'Minimum Balance Required'}
+                    </label>
                     <input
                       type="number"
                       value={condition.minBalance}
                       onChange={(e) => updateCondition(index, 'minBalance', e.target.value)}
-                      placeholder="100"
+                      placeholder={condition.conditionType === 'NFT_COLLECTION' ? '1' : '100'}
                       className="input-field"
                       disabled={!isConnected}
                     />
                   </div>
+                  
                   <button
                     onClick={() => removeCondition(index)}
                     className="w-full bg-red-600 hover:bg-red-700 text-white rounded-lg py-2 px-4 mt-2 flex items-center justify-center"
@@ -846,7 +957,9 @@ const fetchEligibleAirdrops = async () => {
                   {myAirdrops.map((airdrop) => (
                     <div 
                       key={airdrop.id} 
-                      className={`airdrop-card p-4 rounded-lg border ${airdrop.isActive ? 'border-green-500' : 'border-red-500'} cursor-pointer ${selectedAirdrop?.id === airdrop.id ? 'bg-gray-800' : 'bg-gray-900'}`}
+                      className={`airdrop-card p-4 rounded-lg border ${airdrop.isActive ? 
+                        (airdrop.isPaused ? 'border-yellow-500' : 'border-green-500') : 
+                        'border-red-500'} cursor-pointer ${selectedAirdrop?.id === airdrop.id ? 'bg-gray-800' : 'bg-gray-900'}`}
                       onClick={() => setSelectedAirdrop(airdrop)}
                     >
                       <h3 className="text-lg font-semibold text-white">{airdrop.title}</h3>
@@ -854,7 +967,11 @@ const fetchEligibleAirdrops = async () => {
                       <p className="text-sm text-gray-400">Token: {airdrop.tokenAddress}</p>
                       <p className="text-sm text-gray-400">
                         Status: {airdrop.isActive ? (
-                          <span className="text-green-400">Active</span>
+                          airdrop.isPaused ? (
+                            <span className="text-yellow-400">Paused</span>
+                          ) : (
+                            <span className="text-green-400">Active</span>
+                          )
                         ) : (
                           <span className="text-red-400">Inactive</span>
                         )}
@@ -872,15 +989,48 @@ const fetchEligibleAirdrops = async () => {
                 {selectedAirdrop && (
                   <div className="selected-airdrop-details bg-gray-800 p-6 rounded-lg">
                     <div className="flex justify-between items-start mb-4">
-                      <h3 className="text-xl font-bold text-white">{selectedAirdrop.title}</h3>
+                      <div>
+                        <h3 className="text-xl font-bold text-white">{selectedAirdrop.title}</h3>
+                        <p className="text-sm text-gray-300">
+                          Status: {selectedAirdrop.isActive ? (
+                            selectedAirdrop.isPaused ? (
+                              <span className="text-yellow-400">Paused</span>
+                            ) : (
+                              <span className="text-green-400">Active</span>
+                            )
+                          ) : (
+                            <span className="text-red-400">Inactive</span>
+                          )}
+                        </p>
+                      </div>
                       <div className="flex space-x-2">
                         {selectedAirdrop.isActive && (
-                          <button
-                            onClick={() => handleDeactivateAirdrop(selectedAirdrop.id)}
-                            className="bg-red-600 hover:bg-red-700 text-white rounded px-3 py-1 text-sm"
-                          >
-                            Deactivate
-                          </button>
+                          <>
+                            {selectedAirdrop.isPaused ? (
+                              <button
+                                onClick={() => handleResumeAirdrop(selectedAirdrop.id)}
+                                className="bg-green-600 hover:bg-green-700 text-white rounded px-3 py-1 text-sm"
+                                disabled={loading}
+                              >
+                                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Resume'}
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handlePauseAirdrop(selectedAirdrop.id)}
+                                className="bg-yellow-600 hover:bg-yellow-700 text-white rounded px-3 py-1 text-sm"
+                                disabled={loading}
+                              >
+                                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Pause'}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeactivateAirdrop(selectedAirdrop.id)}
+                              className="bg-red-600 hover:bg-red-700 text-white rounded px-3 py-1 text-sm"
+                              disabled={loading}
+                            >
+                              Deactivate
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -895,11 +1045,6 @@ const fetchEligibleAirdrops = async () => {
                       <div>
                         <p className="text-sm text-gray-300"><span className="font-medium">Total Tokens:</span> {selectedAirdrop.totalTokens}</p>
                         <p className="text-sm text-gray-300"><span className="font-medium">Claimed Tokens:</span> {selectedAirdrop.claimedTokens}</p>
-                        <p className="text-sm text-gray-300"><span className="font-medium">Status:</span> {selectedAirdrop.isActive ? (
-                          <span className="text-green-400">Active</span>
-                        ) : (
-                          <span className="text-red-400">Inactive</span>
-                        )}</p>
                         {selectedAirdrop.tokenType === 0 && (
                           <>
                             <p className="text-sm text-gray-300"><span className="font-medium">First Claim:</span> {selectedAirdrop.firstClaimPercentage}%</p>
@@ -916,8 +1061,14 @@ const fetchEligibleAirdrops = async () => {
                         <div className="space-y-2">
                           {selectedAirdrop.conditions.map((condition, index) => (
                             <div key={index} className="bg-gray-700 p-3 rounded">
+                              <p className="text-sm text-gray-300">
+                                Type: {condition.conditionType === 1 ? 'NFT Collection' : 'ERC20 Balance'}
+                              </p>
                               <p className="text-sm text-gray-300">Token: {condition.conditionTokenAddress}</p>
-                              <p className="text-sm text-gray-300">Min Balance: {condition.conditionMinBalance}</p>
+                              <p className="text-sm text-gray-300">
+                                Min Required: {condition.conditionMinBalance}
+                                {condition.conditionType === 1 ? ' NFTs' : ' Tokens'}
+                              </p>
                             </div>
                           ))}
                         </div>
@@ -1005,7 +1156,11 @@ const fetchEligibleAirdrops = async () => {
                         </p>
                         <p className="text-sm text-gray-400">
                           Status: {airdrop.isActive ? (
-                            <span className="text-green-400">Active</span>
+                            airdrop.isPaused ? (
+                              <span className="text-yellow-400">Paused</span>
+                            ) : (
+                              <span className="text-green-400">Active</span>
+                            )
                           ) : (
                             <span className="text-red-400">Inactive</span>
                           )}
@@ -1022,7 +1177,7 @@ const fetchEligibleAirdrops = async () => {
                       </div>
                       <button
                         onClick={() => handleClaimTokens(airdrop.id)}
-                        disabled={loading}
+                        disabled={loading || !airdrop.isActive || airdrop.isPaused}
                         className="bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2"
                       >
                         {loading ? <Loader2 className="animate-spin h-5 w-5" /> : 'Claim'}
@@ -1035,7 +1190,10 @@ const fetchEligibleAirdrops = async () => {
                         <ul className="space-y-1">
                           {airdrop.conditions.map((condition, index) => (
                             <li key={index} className="text-xs text-gray-400">
-                              Hold at least {ethers.formatUnits(condition.conditionMinBalance, DECIMALS)} of token {condition.conditionTokenAddress}
+                              {condition.conditionType === 1 ? 'Own at least' : 'Hold at least'} 
+                              {' '}{condition.conditionMinBalance} 
+                              {condition.conditionType === 1 ? ' NFTs from collection' : ' tokens of'} 
+                              {' '}{condition.conditionTokenAddress}
                             </li>
                           ))}
                         </ul>
@@ -1056,151 +1214,153 @@ const fetchEligibleAirdrops = async () => {
       </div>
 
       <style jsx>{`
-  .airdrop-system-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
-  }
-  .airdrop-system-card {
-    background-color: #2a2a3a;
-    border-radius: 12px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-  .wallet-section {
-    margin-bottom: 1.5rem;
-  }
-  .tabs {
-    display: flex;
-    border-bottom: 1px solid #3a3a4a;
-    margin-bottom: 1.5rem;
-  }
-  .tab-button {
-    padding: 0.75rem 1.5rem;
-    background: none;
-    border: none;
-    color: #c0c0d0;
-    font-weight: 600;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-  }
-  .tab-button.active {
-    color: #ffffff;
-    border-bottom-color: #4a90e2;
-  }
-  .alert-error {
-    background-color: #ffebee;
-    color: #c62828;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1rem;
-    border: 1px solid #ef9a9a;
-  }
-  .alert-status {
-    background-color: #e8f5e9;
-    color: #2e7d32;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1rem;
-    border: 1px solid #a5d6a7;
-  }
-  .form-group {
-    margin-bottom: 1rem;
-  }
-  .input-field {
-    width: 100%;
-    padding: 0.75rem;
-    background-color: #3a3a4a;
-    border: 1px solid #5a5a6a;
-    border-radius: 0.5rem;
-    color: #ffffff;
-    margin-top: 0.25rem;
-  }
-  .input-field:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-  .conditions-section {
-    margin-top: 1.5rem;
-  }
-  .condition-item {
-    margin-bottom: 1rem;
-    background-color: #3a3a4a;
-  }
-  .percentage-rules {
-    background-color: #3a3a4a;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    margin-bottom: 1rem;
-  }
-  .airdrop-card {
-    transition: all 0.2s ease;
-    background-color: #3a3a4a;
-  }
-  .airdrop-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  }
-  .selected-airdrop-details {
-    margin-top: 1.5rem;
-    background-color: #3a3a4a;
-  }
-  .whitelist-section {
-    margin-top: 1.5rem;
-  }
-
-  /* Text colors */
-  .text-gray-100 {
-    color: #ffffff;
-  }
-  .text-gray-300 {
-    color: #e0e0e0;
-  }
-  .text-gray-400 {
-    color: #b0b0b0;
-  }
-  .text-white {
-    color: #ffffff;
-  }
-  .text-blue-500 {
-    color: #4a90e2;
-  }
-  .text-green-400 {
-    color: #66bb6a;
-  }
-  .text-red-400 {
-    color: #ef5350;
-  }
-  .text-green-500 {
-    color: #4caf50;
-  }
-  .text-red-500 {
-    color: #f44336;
-  }
-
-  /* Button colors */
-  .bg-blue-600 {
-    background-color: #4a90e2;
-  }
-  .hover\:bg-blue-700:hover {
-    background-color: #3a80d2;
-  }
-  .bg-red-600 {
-    background-color: #ef5350;
-  }
-  .hover\:bg-red-700:hover {
-    background-color: #e53935;
-  }
-  .bg-green-600 {
-    background-color: #66bb6a;
-  }
-  .hover\:bg-green-700:hover {
-    background-color: #57a75a;
-  }
-`}</style>
-
-
-
+        .airdrop-system-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 2rem;
+        }
+        .airdrop-system-card {
+          background-color: #2a2a3a;
+          border-radius: 12px;
+          padding: 2rem;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .wallet-section {
+          margin-bottom: 1.5rem;
+        }
+        .tabs {
+          display: flex;
+          border-bottom: 1px solid #3a3a4a;
+          margin-bottom: 1.5rem;
+        }
+        .tab-button {
+          padding: 0.75rem 1.5rem;
+          background: none;
+          border: none;
+          color: #c0c0d0;
+          font-weight: 600;
+          cursor: pointer;
+          border-bottom: 2px solid transparent;
+        }
+        .tab-button.active {
+          color: #ffffff;
+          border-bottom-color: #4a90e2;
+        }
+        .alert-error {
+          background-color: #ffebee;
+          color: #c62828;
+          padding: 1rem;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+          border: 1px solid #ef9a9a;
+        }
+        .alert-status {
+          background-color: #e8f5e9;
+          color: #2e7d32;
+          padding: 1rem;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+          border: 1px solid #a5d6a7;
+        }
+        .form-group {
+          margin-bottom: 1rem;
+        }
+        .input-field {
+          width: 100%;
+          padding: 0.75rem;
+          background-color: #3a3a4a;
+          border: 1px solid #5a5a6a;
+          border-radius: 0.5rem;
+          color: #ffffff;
+          margin-top: 0.25rem;
+        }
+        .input-field:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .conditions-section {
+          margin-top: 1.5rem;
+        }
+        .condition-item {
+          margin-bottom: 1rem;
+          background-color: #3a3a4a;
+        }
+        .percentage-rules {
+          background-color: #3a3a4a;
+          padding: 1rem;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+        }
+        .airdrop-card {
+          transition: all 0.2s ease;
+          background-color: #3a3a4a;
+        }
+        .airdrop-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .selected-airdrop-details {
+          margin-top: 1.5rem;
+          background-color: #3a3a4a;
+        }
+        .whitelist-section {
+          margin-top: 1.5rem;
+        }
+        .text-gray-100 {
+          color: #ffffff;
+        }
+        .text-gray-300 {
+          color: #e0e0e0;
+        }
+        .text-gray-400 {
+          color: #b0b0b0;
+        }
+        .text-white {
+          color: #ffffff;
+        }
+        .text-blue-500 {
+          color: #4a90e2;
+        }
+        .text-green-400 {
+          color: #66bb6a;
+        }
+        .text-red-400 {
+          color: #ef5350;
+        }
+        .text-yellow-400 {
+          color: #facc15;
+        }
+        .text-green-500 {
+          color: #4caf50;
+        }
+        .text-red-500 {
+          color: #f44336;
+        }
+        .bg-blue-600 {
+          background-color: #4a90e2;
+        }
+        .hover\:bg-blue-700:hover {
+          background-color: #3a80d2;
+        }
+        .bg-red-600 {
+          background-color: #ef5350;
+        }
+        .hover\:bg-red-700:hover {
+          background-color: #e53935;
+        }
+        .bg-green-600 {
+          background-color: #66bb6a;
+        }
+        .hover\:bg-green-700:hover {
+          background-color: #57a75a;
+        }
+        .bg-yellow-600 {
+          background-color: #ca8a04;
+        }
+        .hover\:bg-yellow-700:hover {
+          background-color: #a16207;
+        }
+      `}</style>
     </div>
   );
 }

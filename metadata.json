@@ -110,6 +110,44 @@
 					{
 						"indexed": true,
 						"internalType": "address",
+						"name": "pausedBy",
+						"type": "address"
+					}
+				],
+				"name": "AirdropPaused",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "airdropId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "resumedBy",
+						"type": "address"
+					}
+				],
+				"name": "AirdropResumed",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "airdropId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
 						"name": "claimant",
 						"type": "address"
 					},
@@ -260,6 +298,11 @@
 					{
 						"components": [
 							{
+								"internalType": "enum AirdropSystem.ConditionType",
+								"name": "conditionType",
+								"type": "uint8"
+							},
+							{
 								"internalType": "address",
 								"name": "conditionTokenAddress",
 								"type": "address"
@@ -325,6 +368,11 @@
 					{
 						"components": [
 							{
+								"internalType": "enum AirdropSystem.ConditionType",
+								"name": "conditionType",
+								"type": "uint8"
+							},
+							{
 								"internalType": "address",
 								"name": "conditionTokenAddress",
 								"type": "address"
@@ -361,6 +409,134 @@
 				"name": "deactivateAirdrop",
 				"outputs": [],
 				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_airdropId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "_user",
+						"type": "address"
+					}
+				],
+				"name": "getAirdropDetails",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "uint256",
+								"name": "id",
+								"type": "uint256"
+							},
+							{
+								"internalType": "enum AirdropSystem.TokenType",
+								"name": "tokenType",
+								"type": "uint8"
+							},
+							{
+								"internalType": "address",
+								"name": "tokenAddress",
+								"type": "address"
+							},
+							{
+								"internalType": "string",
+								"name": "tokenId",
+								"type": "string"
+							},
+							{
+								"internalType": "string",
+								"name": "title",
+								"type": "string"
+							},
+							{
+								"internalType": "uint256",
+								"name": "expirationTime",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "totalTokens",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "claimedTokens",
+								"type": "uint256"
+							},
+							{
+								"internalType": "bool",
+								"name": "isActive",
+								"type": "bool"
+							},
+							{
+								"internalType": "bool",
+								"name": "isPaused",
+								"type": "bool"
+							},
+							{
+								"internalType": "uint256",
+								"name": "claimableAmount",
+								"type": "uint256"
+							},
+							{
+								"components": [
+									{
+										"internalType": "enum AirdropSystem.ConditionType",
+										"name": "conditionType",
+										"type": "uint8"
+									},
+									{
+										"internalType": "address",
+										"name": "conditionTokenAddress",
+										"type": "address"
+									},
+									{
+										"internalType": "uint256",
+										"name": "conditionMinBalance",
+										"type": "uint256"
+									}
+								],
+								"internalType": "struct AirdropSystem.Condition[]",
+								"name": "conditions",
+								"type": "tuple[]"
+							},
+							{
+								"internalType": "uint256",
+								"name": "firstClaimPercentage",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "secondClaimPercentage",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "otherClaimPercentage",
+								"type": "uint256"
+							},
+							{
+								"internalType": "bool",
+								"name": "isWhitelisted",
+								"type": "bool"
+							},
+							{
+								"internalType": "uint256[]",
+								"name": "availableNftIds",
+								"type": "uint256[]"
+							}
+						],
+						"internalType": "struct AirdropSystem.AirdropDetails",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -421,12 +597,22 @@
 								"type": "bool"
 							},
 							{
+								"internalType": "bool",
+								"name": "isPaused",
+								"type": "bool"
+							},
+							{
 								"internalType": "uint256",
 								"name": "claimableAmount",
 								"type": "uint256"
 							},
 							{
 								"components": [
+									{
+										"internalType": "enum AirdropSystem.ConditionType",
+										"name": "conditionType",
+										"type": "uint8"
+									},
 									{
 										"internalType": "address",
 										"name": "conditionTokenAddress",
@@ -547,12 +733,22 @@
 								"type": "bool"
 							},
 							{
+								"internalType": "bool",
+								"name": "isPaused",
+								"type": "bool"
+							},
+							{
 								"internalType": "uint256",
 								"name": "claimableAmount",
 								"type": "uint256"
 							},
 							{
 								"components": [
+									{
+										"internalType": "enum AirdropSystem.ConditionType",
+										"name": "conditionType",
+										"type": "uint8"
+									},
 									{
 										"internalType": "address",
 										"name": "conditionTokenAddress",
@@ -603,6 +799,25 @@
 				"type": "function"
 			},
 			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_airdropId",
+						"type": "uint256"
+					}
+				],
+				"name": "isAirdropPaused",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
 				"inputs": [],
 				"name": "owner",
 				"outputs": [
@@ -613,6 +828,19 @@
 					}
 				],
 				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_airdropId",
+						"type": "uint256"
+					}
+				],
+				"name": "pauseAirdrop",
+				"outputs": [],
+				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
@@ -636,6 +864,19 @@
 			{
 				"inputs": [],
 				"name": "renounceOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_airdropId",
+						"type": "uint256"
+					}
+				],
+				"name": "resumeAirdrop",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -702,11 +943,23 @@
 		"userdoc": {
 			"kind": "user",
 			"methods": {
-				"createERC20Airdrop(address,string,uint256,uint256,(address,uint256)[],uint256,uint256,uint256,string)": {
+				"createERC20Airdrop(address,string,uint256,uint256,(uint8,address,uint256)[],uint256,uint256,uint256,string)": {
 					"notice": "Create an ERC20 airdrop. The caller must have approved this contract for _totalTokens."
 				},
-				"createERC721Airdrop(address,uint256[],string,uint256,(address,uint256)[],string)": {
+				"createERC721Airdrop(address,uint256[],string,uint256,(uint8,address,uint256)[],string)": {
 					"notice": "Create an ERC721 airdrop. Caller must have approved this contract to transfer the provided NFTs."
+				},
+				"getAirdropDetails(uint256,address)": {
+					"notice": "Get airdrop details by ID (for viewing paused status and other details)"
+				},
+				"isAirdropPaused(uint256)": {
+					"notice": "Check if an airdrop is paused"
+				},
+				"pauseAirdrop(uint256)": {
+					"notice": "Pause an airdrop - only creator or owner can pause"
+				},
+				"resumeAirdrop(uint256)": {
+					"notice": "Resume a paused airdrop - only creator or owner can resume"
 				}
 			},
 			"version": 1
@@ -714,7 +967,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"uus.sol": "AirdropSystem"
+			"newone.sol": "AirdropSystem"
 		},
 		"evmVersion": "prague",
 		"libraries": {},
@@ -800,12 +1053,12 @@
 				"dweb:/ipfs/QmfDRc7pxfaXB2Dh9np5Uf29Na3pQ7tafRS684wd3GLjVL"
 			]
 		},
-		"uus.sol": {
-			"keccak256": "0xd7b1523cd84917ab8fcbf31609e9946f5565c7cfaba7d87203d5676e041c0a75",
+		"newone.sol": {
+			"keccak256": "0xbabda8965978aac82eedfb06812cbf9e6596d2f14d946ca5c436d03f94fc4da3",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://9055655288fbd2836686c0c493a616f86ca49c5be48e95fe17212927c9d0cef8",
-				"dweb:/ipfs/QmbhvDqfKr4YSZKNiu7qP2k9dYp8TvMHaUztGYCLyC73hu"
+				"bzz-raw://cc238ff27c8ae7f14b804075b839c6c8c7033009f4f0148b562f18a1d7ac49f4",
+				"dweb:/ipfs/QmZxoQsoxsiJY25EZmZS8uq8ztiU2Zzh6qvq5STwoyu3g5"
 			]
 		}
 	},

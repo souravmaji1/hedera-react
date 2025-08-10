@@ -1,9 +1,10 @@
 'use client'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ContractId, AccountId } from "@hashgraph/sdk";
-import { Loader2 } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Check, X } from 'lucide-react';
 import { 
   useWriteContract, 
+  useReadContract,
   useApproveTokenAllowance, 
   useApproveTokenNftAllowance,
   useAssociateTokens, 
@@ -11,19 +12,23 @@ import {
   useAccountId 
 } from '@buidlerlabs/hashgraph-react-wallets';
 import { HashpackConnector } from '@buidlerlabs/hashgraph-react-wallets/connectors';
+import { ethers } from 'ethers';
 import CONTRACT_ABI from './abi.json';
 
 const DECIMALS = 8; // Decimal places for the token
+const CONTRACT_ID = ContractId.fromString("0.0.6536815"); // Replace with your AirdropSystem contract ID
 
-export default function AirdropPage() {
+export default function AirdropSystem() {
   // Wallet connection state
   const { isConnected, disconnect } = useWallet();
   const { data: accountId } = useAccountId();
+  const { connect } = useWallet(HashpackConnector);
 
-  // Airdrop type selection
-  const [airdropType, setAirdropType] = useState('ERC20'); // 'ERC20' or 'ERC721'
+  // Tab state
+  const [activeTab, setActiveTab] = useState('create'); // 'create', 'my-airdrops', 'claim'
 
-  // Common airdrop form state
+  // Airdrop creation state
+  const [airdropType, setAirdropType] = useState('ERC20');
   const [tokenAddress, setTokenAddress] = useState('');
   const [expirationTime, setExpirationTime] = useState('');
   const [title, setTitle] = useState('');
@@ -31,27 +36,35 @@ export default function AirdropPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [transactionStatus, setTransactionStatus] = useState('');
-
-  // ERC20 specific state
   const [totalTokens, setTotalTokens] = useState('');
   const [showPercentageRules, setShowPercentageRules] = useState(false);
-  const [firstClaimPercentage, setFirstClaimPercentage] = useState('');
-  const [secondClaimPercentage, setSecondClaimPercentage] = useState('');
-  const [otherClaimPercentage, setOtherClaimPercentage] = useState('');
-
-  // ERC721 specific state
+  const [firstClaimPercentage, setFirstClaimPercentage] = useState('0');
+  const [secondClaimPercentage, setSecondClaimPercentage] = useState('0');
+  const [otherClaimPercentage, setOtherClaimPercentage] = useState('0');
   const [nftSerials, setNftSerials] = useState('');
   const [nftTokenId, setNftTokenId] = useState('');
 
+  // My Airdrops state
+  const [myAirdrops, setMyAirdrops] = useState([]);
+  const [loadingMyAirdrops, setLoadingMyAirdrops] = useState(false);
+  const [selectedAirdrop, setSelectedAirdrop] = useState(null);
+  const [whitelistAddresses, setWhitelistAddresses] = useState('');
+  const [removeWhitelistAddresses, setRemoveWhitelistAddresses] = useState('');
+
+  // Claim Airdrops state
+  const [eligibleAirdrops, setEligibleAirdrops] = useState([]);
+  const [loadingEligibleAirdrops, setLoadingEligibleAirdrops] = useState(false);
+
   const { writeContract } = useWriteContract();
+  const { readContract } = useReadContract();
   const { approve: approveToken } = useApproveTokenAllowance();
   const { approve: approveNft } = useApproveTokenNftAllowance();
-  const { associateTokens } = useAssociateTokens();
+ 
+  // Add these constants at the top of your component
+const CONTRACT_ADDRESS = "0xB59e170EfE925E770DC0b20342546625C6E13B58"; // Replace with your contract's Solidity address
+const CONTRACT_ID = ContractId.fromString("0.0.6537444"); // Hedera Contract IDhttps://testnet.hashio.io/api
 
-  const CONTRACT_ID = ContractId.fromString("0.0.6536013"); // Replace with your AirdropSystem contract ID
-
-  const { connect } = useWallet(HashpackConnector);
-
+  // Connect wallet handler
   const handleConnectWallet = async () => {
     try {
       await connect();
@@ -61,6 +74,7 @@ export default function AirdropPage() {
     }
   };
 
+  // Disconnect wallet handler
   const handleDisconnectWallet = async () => {
     try {
       await disconnect();
@@ -70,52 +84,80 @@ export default function AirdropPage() {
     }
   };
 
-  const handleApproveTokens = async () => {
-    if (!tokenAddress) return;
-
-    try {
-      setLoading(true);
-      setError('');
-      setTransactionStatus('Approving tokens...');
-
-      if (airdropType === 'ERC20') {
-        const amountInDecimals = Math.floor(Number(totalTokens) * 1e8);
-        await approveToken(
-          [{
-            tokenId: tokenAddress,
-            amount: amountInDecimals
-          }],
-          CONTRACT_ID,
-          {
-            gas: 800000,
-            maxPriorityFeePerGas: 1000000000,
-          }
-        );
-      } else {
-        // For NFTs
-        const serials = nftSerials.split(',').map(s => parseInt(s.trim()));
-        await approveNft(
-          serials.map(serial => ({
-            tokenId: tokenAddress,
-            serial: serial
-          })),
-          CONTRACT_ID,
-          {
-            gas: 800000,
-            maxPriorityFeePerGas: 1000000000,
-          }
-        );
-      }
-
-      setTransactionStatus('Tokens approved successfully!');
-    } catch (err) {
-      console.error('Token approval error:', err);
-      setError(`Token approval failed: ${err.message}`);
-    } finally {
-      setLoading(false);
+  // Add this function to your component or a separate utilities file
+async function fetchTokenInfo(tokenId) {
+  try {
+    const response = await fetch(`https://testnet.mirrornode.hedera.com/api/v1/tokens/${tokenId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch token info: ${response.status}`);
     }
-  };
+    const data = await response.json();
+    return {
+      decimals: data.decimals || 8, // Default to 8 if not specified
+      symbol: data.symbol,
+      name: data.name
+    };
+  } catch (error) {
+    console.error('Error fetching token info:', error);
+    // Fallback to 8 decimals if API fails
+    return { decimals: 8, symbol: '', name: '' };
+  }
+}
 
+  // Approve tokens handler
+  const handleApproveTokens = async () => {
+  if (!tokenAddress) return;
+
+  try {
+    setLoading(true);
+    setError('');
+    setTransactionStatus('Approving tokens...');
+
+    // Fetch token decimals
+    const tokenInfo = await fetchTokenInfo(tokenAddress);
+    const decimals = tokenInfo.decimals;
+    const multiplier = 10 ** decimals;
+
+    if (airdropType === 'ERC20') {
+      const amountInDecimals = Math.floor(Number(totalTokens) * multiplier);
+      await approveToken(
+        [{
+          tokenId: tokenAddress,
+          amount: amountInDecimals
+        }],
+        CONTRACT_ID,
+        {
+          gas: 800000,
+          maxPriorityFeePerGas: 1000000000,
+        }
+      );
+    } else {
+      const serials = nftSerials.split(',').map(s => parseInt(s.trim()));
+      await approveNft(
+        serials.map(serial => ({
+          tokenId: tokenAddress,
+          serial: serial
+        })),
+        CONTRACT_ID,
+        {
+          gas: 800000,
+          maxPriorityFeePerGas: 1000000000,
+        }
+      );
+    }
+
+    setTransactionStatus('Tokens approved successfully!');
+    return { success: true, decimals };
+  } catch (err) {
+    console.error('Token approval error:', err);
+    setError(`Token approval failed: ${err.message}`);
+    return { success: false, decimals: 8 }; // Fallback to 8 decimals
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // Create airdrop handler
   const handleCreateAirdrop = async () => {
     if (!isConnected) {
       setError('Please connect your wallet first');
@@ -157,30 +199,45 @@ export default function AirdropPage() {
         }
       }
     } else {
-      // ERC721 validation
-      if (!nftSerials || !nftTokenId) {
+      if (!nftSerials) {
         setError('Please specify NFT serials and token ID for ERC721 airdrop.');
         return;
       }
     }
 
     try {
-      await handleApproveTokens(); // Approve tokens/NFTs first
+         const { success, decimals } = await handleApproveTokens();
+    if (!success) return;
+
+     const multiplier = 10 ** decimals;
+    
+
       setLoading(true);
       setError('');
       setTransactionStatus('Creating airdrop...');
 
-      const tokenAccountId = AccountId.fromString(tokenAddress);
-      const tokenSolidityAddress = `0x${tokenAccountId.toSolidityAddress()}`;
+       const tokenAccountId = AccountId.fromString(tokenAddress);
+    const tokenSolidityAddress = `0x${tokenAccountId.toSolidityAddress()}`;
 
-      const expirationTimestamp = Math.floor(new Date(expirationTime).getTime() / 1000);
-      const formattedConditions = conditions.map((condition) => ({
-        conditionTokenAddress: `0x${AccountId.fromString(condition.tokenAddress).toSolidityAddress()}`,
-        conditionMinBalance: Math.floor(Number(condition.minBalance) * 1e8),
-      }));
+    const expirationTimestamp = Math.floor(new Date(expirationTime).getTime() / 1000);
+   // const formattedConditions = conditions.map((condition) => ({
+    //  conditionTokenAddress: `0x${AccountId.fromString(condition.tokenAddress).toSolidityAddress()}`,
+    //  conditionMinBalance: Math.floor(Number(condition.minBalance) * multiplier)}));
+
+ const formattedConditions = await Promise.all(conditions.map(async (condition) => {
+    const tokenInfo = await fetchTokenInfo(condition.tokenAddress);
+    const conditionDecimals = tokenInfo.decimals || 8;
+    const multiplier = 10 ** conditionDecimals;
+    
+    return {
+      conditionTokenAddress: `0x${AccountId.fromString(condition.tokenAddress).toSolidityAddress()}`,
+      conditionMinBalance: Math.floor(Number(condition.minBalance) * multiplier)
+    };
+  }));
+
 
       if (airdropType === 'ERC20') {
-        const totalTokensInWei = Math.floor(Number(totalTokens) * 1e8);
+     const totalTokensInDecimals = Math.floor(Number(totalTokens) * multiplier);
         
         await writeContract({
           contractId: CONTRACT_ID,
@@ -188,9 +245,9 @@ export default function AirdropPage() {
           functionName: 'createERC20Airdrop',
           args: [
             tokenSolidityAddress,
-            nftTokenId || "", // Using nftTokenId if available
+            nftTokenId || "",
             expirationTimestamp,
-            totalTokensInWei,
+            totalTokensInDecimals,
             formattedConditions,
             showPercentageRules ? Number(firstClaimPercentage) : 100,
             showPercentageRules ? Number(secondClaimPercentage) : 0,
@@ -203,7 +260,6 @@ export default function AirdropPage() {
           },
         });
       } else {
-        // ERC721 airdrop
         const serialNumbers = nftSerials.split(',').map(s => parseInt(s.trim()));
         
         await writeContract({
@@ -213,7 +269,7 @@ export default function AirdropPage() {
           args: [
             tokenSolidityAddress,
             serialNumbers,
-            nftTokenId,
+            tokenAccountId,
             expirationTimestamp,
             formattedConditions,
             title
@@ -226,6 +282,14 @@ export default function AirdropPage() {
       }
 
       setTransactionStatus('Airdrop created successfully!');
+      // Reset form
+      setTokenAddress('');
+      setExpirationTime('');
+      setTitle('');
+      setConditions([]);
+      setTotalTokens('');
+      setNftSerials('');
+      setNftTokenId('');
     } catch (err) {
       console.error('Airdrop creation error:', err);
       setError(`Airdrop creation failed: ${err.message}`);
@@ -234,6 +298,234 @@ export default function AirdropPage() {
     }
   };
 
+  // Fetch airdrops created by the current user
+ // Helper function to get the provider and contract instance
+const getContractInstance = () => {
+  // Use window.ethereum if available (MetaMask), otherwise use Hedera JSON-RPC endpoint
+  const provider = new ethers.JsonRpcProvider("https://testnet.hashio.io/api"); // Hedera mainnet JSON-RPC
+  
+  return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, provider);
+};
+
+// Fetch airdrops created by the current user
+const fetchMyAirdrops = async () => {
+  if (!isConnected || !accountId) return;
+
+  try {
+    setLoadingMyAirdrops(true);
+    setError('');
+    
+    const contract = getContractInstance();
+    const accountSolidityAddress = `0x${AccountId.fromString(accountId.toString()).toSolidityAddress()}`;
+
+    console.log(accountSolidityAddress);
+    
+    // Call the contract function
+    const result = await contract.getAirdropsByCreator(accountSolidityAddress);
+
+    console.log(result);
+    
+    // Convert the result to a more usable format
+    const formattedAirdrops = result.map(airdrop => ({
+      id: Number(airdrop[0]), // Convert BigInt to Number
+      tokenType: Number(airdrop[1]),
+      tokenAddress: airdrop[2],
+      tokenId: airdrop[3],
+      title: airdrop[4],
+      expirationTime: Number(airdrop[5]),
+      totalTokens: Number(airdrop[6]),
+      claimedTokens: Number(airdrop[7]),
+      isActive: airdrop[8],
+      firstClaimPercentage: Number(airdrop[11]),
+      secondClaimPercentage: Number(airdrop[12]),
+      otherClaimPercentage: Number(airdrop[13]),
+      conditions: airdrop[10].map(cond => ({
+        conditionTokenAddress: cond[0],
+        conditionMinBalance: Number(cond[1])
+      })),
+      availableNftIds: airdrop[15].map(id => Number(id))
+    }));
+
+    setMyAirdrops(formattedAirdrops);
+  } catch (err) {
+    console.error('Error fetching my airdrops:', err);
+    setError(`Failed to fetch your airdrops: ${err.message}`);
+  } finally {
+    setLoadingMyAirdrops(false);
+  }
+};
+
+// Fetch eligible airdrops for the current user
+const fetchEligibleAirdrops = async () => {
+  if (!isConnected || !accountId) return;
+
+  try {
+    setLoadingEligibleAirdrops(true);
+    setError('');
+    
+    const contract = getContractInstance();
+    const accountSolidityAddress = `0x${AccountId.fromString(accountId.toString()).toSolidityAddress()}`;
+    
+    // Call the contract function
+    const result = await contract.getEligibleAirdrops(accountSolidityAddress);
+    
+    // Convert the result to a more usable format
+    const formattedAirdrops = result.map(airdrop => ({
+      id: Number(airdrop[0]),
+      tokenType: Number(airdrop[1]),
+      tokenAddress: airdrop[2],
+      tokenId: airdrop[3],
+      title: airdrop[4],
+      expirationTime: Number(airdrop[5]),
+      totalTokens: Number(airdrop[6]),
+      claimedTokens: Number(airdrop[7]),
+      isActive: airdrop[8],
+      claimableAmount: Number(airdrop[9]),
+      isWhitelisted: airdrop[14],
+      firstClaimPercentage: Number(airdrop[11]),
+      secondClaimPercentage: Number(airdrop[12]),
+      otherClaimPercentage: Number(airdrop[13]),
+      conditions: airdrop[10].map(cond => ({
+        conditionTokenAddress: cond[0],
+        conditionMinBalance: Number(cond[1])
+      })),
+      availableNftIds: airdrop[15].map(id => Number(id))
+    }));
+
+    setEligibleAirdrops(formattedAirdrops);
+  } catch (err) {
+    console.error('Error fetching eligible airdrops:', err);
+    setError(`Failed to fetch eligible airdrops: ${err.message}`);
+  } finally {
+    setLoadingEligibleAirdrops(false);
+  }
+};
+
+  // Add users to whitelist
+  const handleAddToWhitelist = async () => {
+    if (!selectedAirdrop || !whitelistAddresses) return;
+
+    try {
+      setLoading(true);
+      setError('');
+      setTransactionStatus('Adding to whitelist...');
+
+      const addresses = whitelistAddresses.split(',').map(addr => addr.trim());
+      const formattedAddresses = addresses.map(addr => `0x${AccountId.fromString(addr).toSolidityAddress()}`);
+
+      await writeContract({
+        contractId: CONTRACT_ID,
+        abi: CONTRACT_ABI,
+        functionName: 'addToWhitelist',
+        args: [selectedAirdrop.id, formattedAddresses],
+        metaArgs: {
+          gas: 1000000,
+          maxPriorityFeePerGas: 1000000000,
+        },
+      });
+
+      setTransactionStatus('Successfully added to whitelist!');
+      setWhitelistAddresses('');
+      fetchMyAirdrops(); // Refresh the airdrop list
+    } catch (err) {
+      console.error('Error adding to whitelist:', err);
+      setError(`Failed to add to whitelist: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Remove users from whitelist
+  const handleRemoveFromWhitelist = async () => {
+    if (!selectedAirdrop || !removeWhitelistAddresses) return;
+
+    try {
+      setLoading(true);
+      setError('');
+      setTransactionStatus('Removing from whitelist...');
+
+      const addresses = removeWhitelistAddresses.split(',').map(addr => addr.trim());
+      const formattedAddresses = addresses.map(addr => `0x${AccountId.fromString(addr).toSolidityAddress()}`);
+
+      await writeContract({
+        contractId: CONTRACT_ID,
+        abi: CONTRACT_ABI,
+        functionName: 'removeFromWhitelist',
+        args: [selectedAirdrop.id, formattedAddresses],
+        metaArgs: {
+          gas: 1000000,
+          maxPriorityFeePerGas: 1000000000,
+        },
+      });
+
+      setTransactionStatus('Successfully removed from whitelist!');
+      setRemoveWhitelistAddresses('');
+      fetchMyAirdrops(); // Refresh the airdrop list
+    } catch (err) {
+      console.error('Error removing from whitelist:', err);
+      setError(`Failed to remove from whitelist: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Deactivate an airdrop
+  const handleDeactivateAirdrop = async (airdropId) => {
+    try {
+      setLoading(true);
+      setError('');
+      setTransactionStatus('Deactivating airdrop...');
+
+      await writeContract({
+        contractId: CONTRACT_ID,
+        abi: CONTRACT_ABI,
+        functionName: 'deactivateAirdrop',
+        args: [airdropId],
+        metaArgs: {
+          gas: 1000000,
+          maxPriorityFeePerGas: 1000000000,
+        },
+      });
+
+      setTransactionStatus('Airdrop deactivated successfully!');
+      fetchMyAirdrops(); // Refresh the airdrop list
+    } catch (err) {
+      console.error('Error deactivating airdrop:', err);
+      setError(`Failed to deactivate airdrop: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Claim tokens from an airdrop
+  const handleClaimTokens = async (airdropId) => {
+    try {
+      setLoading(true);
+      setError('');
+      setTransactionStatus('Claiming tokens...');
+
+      await writeContract({
+        contractId: CONTRACT_ID,
+        abi: CONTRACT_ABI,
+        functionName: 'claimTokens',
+        args: [airdropId],
+        metaArgs: {
+          gas: 1000000,
+          maxPriorityFeePerGas: 1000000000,
+        },
+      });
+
+      setTransactionStatus('Tokens claimed successfully!');
+      fetchEligibleAirdrops(); // Refresh the eligible airdrops list
+    } catch (err) {
+      console.error('Error claiming tokens:', err);
+      setError(`Failed to claim tokens: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Condition management functions
   const addCondition = () => {
     setConditions([...conditions, { tokenAddress: "", minBalance: "" }]);
   };
@@ -249,9 +541,21 @@ export default function AirdropPage() {
     setConditions(updatedConditions);
   };
 
+  // Fetch data when wallet connects or tab changes
+  useEffect(() => {
+    if (isConnected) {
+      if (activeTab === 'my-airdrops') {
+        fetchMyAirdrops();
+      } else if (activeTab === 'claim') {
+        fetchEligibleAirdrops();
+      }
+    }
+  }, [isConnected, activeTab]);
+
   return (
-    <div className="airtool-container">
-      <div className="airtool-card">
+    <div className="airdrop-system-container">
+      <div className="airdrop-system-card">
+        {/* Wallet Connection Section */}
         <div className="wallet-section mb-6">
           {isConnected ? (
             <div className="flex items-center justify-between bg-gray-800 p-4 rounded-lg">
@@ -275,8 +579,29 @@ export default function AirdropPage() {
           )}
         </div>
 
-        <h2 className="text-2xl font-bold text-center text-gray-100 mb-6">Create Airdrop</h2>
+        {/* Navigation Tabs */}
+        <div className="tabs mb-6">
+          <button
+            onClick={() => setActiveTab('create')}
+            className={`tab-button ${activeTab === 'create' ? 'active' : ''}`}
+          >
+            Create Airdrop
+          </button>
+          <button
+            onClick={() => setActiveTab('my-airdrops')}
+            className={`tab-button ${activeTab === 'my-airdrops' ? 'active' : ''}`}
+          >
+            My Airdrops
+          </button>
+          <button
+            onClick={() => setActiveTab('claim')}
+            className={`tab-button ${activeTab === 'claim' ? 'active' : ''}`}
+          >
+            Claim Airdrops
+          </button>
+        </div>
 
+        {/* Status Messages */}
         {error && (
           <div className="alert-error mb-4">
             <p>{error}</p>
@@ -289,220 +614,593 @@ export default function AirdropPage() {
           </div>
         )}
 
-        <div className="form-group mb-4">
-          <label className="text-sm font-medium text-gray-300">Airdrop Type</label>
-          <div className="flex space-x-4 mt-2">
-            <button
-              onClick={() => setAirdropType('ERC20')}
-              className={`px-4 py-2 rounded-lg ${airdropType === 'ERC20' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
-            >
-              ERC20 Tokens
-            </button>
-            <button
-              onClick={() => setAirdropType('ERC721')}
-              className={`px-4 py-2 rounded-lg ${airdropType === 'ERC721' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
-            >
-              ERC721 NFTs
-            </button>
-          </div>
-        </div>
+        {/* Create Airdrop Tab */}
+        {activeTab === 'create' && (
+          <div className="create-airdrop-tab">
+            <h2 className="text-2xl font-bold text-center text-gray-100 mb-6">Create Airdrop</h2>
 
-        <div className="form-group">
-          <label className="text-sm font-medium text-gray-300">Token Address (Hedera ID)</label>
-          <input
-            type="text"
-            value={tokenAddress}
-            onChange={(e) => setTokenAddress(e.target.value)}
-            placeholder="0.0.xxxx"
-            className="input-field"
-            disabled={!isConnected}
-          />
-        </div>
-
-        {airdropType === 'ERC721' && (
-          <>
-            <div className="form-group">
-              <label className="text-sm font-medium text-gray-300">NFT Serial Numbers (comma separated)</label>
-              <input
-                type="text"
-                value={nftSerials}
-                onChange={(e) => setNftSerials(e.target.value)}
-                placeholder="123,456,789"
-                className="input-field"
-                disabled={!isConnected}
-              />
-            </div>
-            <div className="form-group">
-              <label className="text-sm font-medium text-gray-300">NFT Token ID</label>
-              <input
-                type="text"
-                value={nftTokenId}
-                onChange={(e) => setNftTokenId(e.target.value)}
-                placeholder="my-nft-collection"
-                className="input-field"
-                disabled={!isConnected}
-              />
-            </div>
-          </>
-        )}
-
-        <div className="form-group">
-          <label className="text-sm font-medium text-gray-300">Title</label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="My Awesome Airdrop"
-            className="input-field"
-            disabled={!isConnected}
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="text-sm font-medium text-gray-300">Expiration Time</label>
-          <input
-            type="datetime-local"
-            value={expirationTime}
-            onChange={(e) => setExpirationTime(e.target.value)}
-            className="input-field"
-            disabled={!isConnected}
-          />
-        </div>
-
-        {airdropType === 'ERC20' && (
-          <>
-            <div className="form-group">
-              <label className="text-sm font-medium text-gray-300">Total Tokens</label>
-              <input
-                type="number"
-                value={totalTokens}
-                onChange={(e) => setTotalTokens(e.target.value)}
-                placeholder="1000"
-                className="input-field"
-                disabled={!isConnected}
-              />
-            </div>
-
-            <button
-              onClick={() => setShowPercentageRules(!showPercentageRules)}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 px-4 mb-4"
-              disabled={!isConnected}
-            >
-              {showPercentageRules ? 'Hide Percentage Rules' : 'Add Percentage Rules'}
-            </button>
-
-            {showPercentageRules && (
-              <div className="percentage-rules">
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-300">First Claim Percentage (%)</label>
-                  <input
-                    type="number"
-                    value={firstClaimPercentage}
-                    onChange={(e) => setFirstClaimPercentage(e.target.value)}
-                    placeholder="50"
-                    className="input-field"
-                    disabled={!isConnected}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-300">Second Claim Percentage (%)</label>
-                  <input
-                    type="number"
-                    value={secondClaimPercentage}
-                    onChange={(e) => setSecondClaimPercentage(e.target.value)}
-                    placeholder="30"
-                    className="input-field"
-                    disabled={!isConnected}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="text-sm font-medium text-gray-300">Other Claim Percentage (%)</label>
-                  <input
-                    type="number"
-                    value={otherClaimPercentage}
-                    onChange={(e) => setOtherClaimPercentage(e.target.value)}
-                    placeholder="20"
-                    className="input-field"
-                    disabled={!isConnected}
-                  />
-                </div>
+            <div className="form-group mb-4">
+              <label className="text-sm font-medium text-gray-300">Airdrop Type</label>
+              <div className="flex space-x-4 mt-2">
+                <button
+                  onClick={() => setAirdropType('ERC20')}
+                  className={`px-4 py-2 rounded-lg ${airdropType === 'ERC20' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+                >
+                  ERC20 Tokens
+                </button>
+                <button
+                  onClick={() => setAirdropType('ERC721')}
+                  className={`px-4 py-2 rounded-lg ${airdropType === 'ERC721' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+                >
+                  ERC721 NFTs
+                </button>
               </div>
+            </div>
+
+            <div className="form-group">
+              <label className="text-sm font-medium text-gray-300">Token Address (Hedera ID)</label>
+              <input
+                type="text"
+                value={tokenAddress}
+                onChange={(e) => setTokenAddress(e.target.value)}
+                placeholder="0.0.xxxx"
+                className="input-field"
+                disabled={!isConnected}
+              />
+            </div>
+
+            {airdropType === 'ERC721' && (
+              <>
+                <div className="form-group">
+                  <label className="text-sm font-medium text-gray-300">NFT Serial Numbers (comma separated)</label>
+                  <input
+                    type="text"
+                    value={nftSerials}
+                    onChange={(e) => setNftSerials(e.target.value)}
+                    placeholder="123,456,789"
+                    className="input-field"
+                    disabled={!isConnected}
+                  />
+                </div>
+               
+              </>
             )}
-          </>
-        )}
 
-        <div className="conditions-section">
-          <h3 className="text-lg font-semibold text-gray-100 mb-4">Conditions (Optional)</h3>
-          <button
-            onClick={addCondition}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 px-4 mb-4"
-            disabled={!isConnected}
-          >
-            Add Condition
-          </button>
+            <div className="form-group">
+              <label className="text-sm font-medium text-gray-300">Title</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="My Awesome Airdrop"
+                className="input-field"
+                disabled={!isConnected}
+              />
+            </div>
 
-          {conditions.map((condition, index) => (
-            <div key={index} className="condition-item bg-gray-800 p-4 rounded-lg border border-gray-700">
-              <div className="form-group">
-                <label className="text-sm font-medium text-gray-300">Condition Token Address (Hedera ID)</label>
-                <input
-                  type="text"
-                  value={condition.tokenAddress}
-                  onChange={(e) => updateCondition(index, 'tokenAddress', e.target.value)}
-                  placeholder="0.0.12345"
-                  className="input-field"
+            <div className="form-group">
+              <label className="text-sm font-medium text-gray-300">Expiration Time</label>
+              <input
+                type="datetime-local"
+                value={expirationTime}
+                onChange={(e) => setExpirationTime(e.target.value)}
+                className="input-field"
+                disabled={!isConnected}
+              />
+            </div>
+
+            {airdropType === 'ERC20' && (
+              <>
+                <div className="form-group">
+                  <label className="text-sm font-medium text-gray-300">Total Tokens</label>
+                  <input
+                    type="number"
+                    value={totalTokens}
+                    onChange={(e) => setTotalTokens(e.target.value)}
+                    placeholder="1000"
+                    className="input-field"
+                    disabled={!isConnected}
+                  />
+                </div>
+
+                <button
+                  onClick={() => setShowPercentageRules(!showPercentageRules)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 px-4 mb-4"
                   disabled={!isConnected}
-                />
-              </div>
-              <div className="form-group">
-                <label className="text-sm font-medium text-gray-300">Minimum Balance Required</label>
-                <input
-                  type="number"
-                  value={condition.minBalance}
-                  onChange={(e) => updateCondition(index, 'minBalance', e.target.value)}
-                  placeholder="100"
-                  className="input-field"
-                  disabled={!isConnected}
-                />
-              </div>
+                >
+                  {showPercentageRules ? 'Hide Percentage Rules' : 'Add Percentage Rules'}
+                </button>
+
+                {showPercentageRules && (
+                  <div className="percentage-rules">
+                    <div className="form-group">
+                      <label className="text-sm font-medium text-gray-300">First Claim Percentage (%)</label>
+                      <input
+                        type="number"
+                        value={firstClaimPercentage}
+                        onChange={(e) => setFirstClaimPercentage(e.target.value)}
+                        placeholder="50"
+                        className="input-field"
+                        disabled={!isConnected}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="text-sm font-medium text-gray-300">Second Claim Percentage (%)</label>
+                      <input
+                        type="number"
+                        value={secondClaimPercentage}
+                        onChange={(e) => setSecondClaimPercentage(e.target.value)}
+                        placeholder="30"
+                        className="input-field"
+                        disabled={!isConnected}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="text-sm font-medium text-gray-300">Other Claim Percentage (%)</label>
+                      <input
+                        type="number"
+                        value={otherClaimPercentage}
+                        onChange={(e) => setOtherClaimPercentage(e.target.value)}
+                        placeholder="20"
+                        className="input-field"
+                        disabled={!isConnected}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            <div className="conditions-section">
+              <h3 className="text-lg font-semibold text-gray-100 mb-4">Conditions (Optional)</h3>
               <button
-                onClick={() => removeCondition(index)}
-                className="w-full bg-red-600 hover:bg-red-700 text-white rounded-lg py-2 px-4 mt-2"
+                onClick={addCondition}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 px-4 mb-4 flex items-center justify-center"
                 disabled={!isConnected}
               >
-                Remove Condition
+                <PlusCircle className="mr-2" size={18} />
+                Add Condition
               </button>
-            </div>
-          ))}
-        </div>
 
-        <button
-          onClick={handleCreateAirdrop}
-          disabled={
-            !isConnected ||
-            loading ||
-            !tokenAddress ||
-            !expirationTime ||
-            !title ||
-            (airdropType === 'ERC20' && !totalTokens) ||
-            (airdropType === 'ERC721' && (!nftSerials || !nftTokenId)) ||
-            (showPercentageRules && airdropType === 'ERC20' && 
-              (Number(firstClaimPercentage) + Number(secondClaimPercentage) + Number(otherClaimPercentage) > 100)
-  )}
-          className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg mt-4 flex items-center justify-center"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              {transactionStatus}
-            </>
-          ) : (
-            'Create Airdrop'
-          )}
-        </button>
+              {conditions.map((condition, index) => (
+                <div key={index} className="condition-item bg-gray-800 p-4 rounded-lg border border-gray-700 mb-4">
+                  <div className="form-group">
+                    <label className="text-sm font-medium text-gray-300">Condition Token Address (Hedera ID)</label>
+                    <input
+                      type="text"
+                      value={condition.tokenAddress}
+                      onChange={(e) => updateCondition(index, 'tokenAddress', e.target.value)}
+                      placeholder="0.0.12345"
+                      className="input-field"
+                      disabled={!isConnected}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="text-sm font-medium text-gray-300">Minimum Balance Required</label>
+                    <input
+                      type="number"
+                      value={condition.minBalance}
+                      onChange={(e) => updateCondition(index, 'minBalance', e.target.value)}
+                      placeholder="100"
+                      className="input-field"
+                      disabled={!isConnected}
+                    />
+                  </div>
+                  <button
+                    onClick={() => removeCondition(index)}
+                    className="w-full bg-red-600 hover:bg-red-700 text-white rounded-lg py-2 px-4 mt-2 flex items-center justify-center"
+                    disabled={!isConnected}
+                  >
+                    <Trash2 className="mr-2" size={18} />
+                    Remove Condition
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={handleCreateAirdrop}
+              disabled={
+                !isConnected ||
+                loading ||
+                !tokenAddress ||
+                !expirationTime ||
+                !title ||
+                (airdropType === 'ERC20' && !totalTokens) ||
+                (airdropType === 'ERC721' && !nftSerials) ||
+                (showPercentageRules && airdropType === 'ERC20' && 
+                  (Number(firstClaimPercentage) + Number(secondClaimPercentage) + Number(otherClaimPercentage) > 100))
+              }
+              className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg mt-4 flex items-center justify-center"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  {transactionStatus}
+                </>
+              ) : (
+                'Create Airdrop'
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* My Airdrops Tab */}
+        {activeTab === 'my-airdrops' && (
+          <div className="my-airdrops-tab">
+            <h2 className="text-2xl font-bold text-center text-gray-100 mb-6">My Airdrops</h2>
+
+            {loadingMyAirdrops ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
+              </div>
+            ) : myAirdrops.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                {isConnected ? "You haven't created any airdrops yet." : "Connect your wallet to view your airdrops."}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {myAirdrops.map((airdrop) => (
+                    <div 
+                      key={airdrop.id} 
+                      className={`airdrop-card p-4 rounded-lg border ${airdrop.isActive ? 'border-green-500' : 'border-red-500'} cursor-pointer ${selectedAirdrop?.id === airdrop.id ? 'bg-gray-800' : 'bg-gray-900'}`}
+                      onClick={() => setSelectedAirdrop(airdrop)}
+                    >
+                      <h3 className="text-lg font-semibold text-white">{airdrop.title}</h3>
+                      <p className="text-sm text-gray-400">Type: {airdrop.tokenType === 0 ? 'ERC20' : 'ERC721'}</p>
+                      <p className="text-sm text-gray-400">Token: {airdrop.tokenAddress}</p>
+                      <p className="text-sm text-gray-400">
+                        Status: {airdrop.isActive ? (
+                          <span className="text-green-400">Active</span>
+                        ) : (
+                          <span className="text-red-400">Inactive</span>
+                        )}
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        Expires: {new Date(airdrop.expirationTime * 1000).toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        Claims: {airdrop.claimedTokens} / {airdrop.totalTokens}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {selectedAirdrop && (
+                  <div className="selected-airdrop-details bg-gray-800 p-6 rounded-lg">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-xl font-bold text-white">{selectedAirdrop.title}</h3>
+                      <div className="flex space-x-2">
+                        {selectedAirdrop.isActive && (
+                          <button
+                            onClick={() => handleDeactivateAirdrop(selectedAirdrop.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white rounded px-3 py-1 text-sm"
+                          >
+                            Deactivate
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div>
+                        <p className="text-sm text-gray-300"><span className="font-medium">Type:</span> {selectedAirdrop.tokenType === 0 ? 'ERC20' : 'ERC721'}</p>
+                        <p className="text-sm text-gray-300"><span className="font-medium">Token Address:</span> {selectedAirdrop.tokenAddress}</p>
+                        <p className="text-sm text-gray-300"><span className="font-medium">Token ID:</span> {selectedAirdrop.tokenId || 'N/A'}</p>
+                        <p className="text-sm text-gray-300"><span className="font-medium">Created:</span> {new Date(selectedAirdrop.expirationTime * 1000).toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-300"><span className="font-medium">Total Tokens:</span> {selectedAirdrop.totalTokens}</p>
+                        <p className="text-sm text-gray-300"><span className="font-medium">Claimed Tokens:</span> {selectedAirdrop.claimedTokens}</p>
+                        <p className="text-sm text-gray-300"><span className="font-medium">Status:</span> {selectedAirdrop.isActive ? (
+                          <span className="text-green-400">Active</span>
+                        ) : (
+                          <span className="text-red-400">Inactive</span>
+                        )}</p>
+                        {selectedAirdrop.tokenType === 0 && (
+                          <>
+                            <p className="text-sm text-gray-300"><span className="font-medium">First Claim:</span> {selectedAirdrop.firstClaimPercentage}%</p>
+                            <p className="text-sm text-gray-300"><span className="font-medium">Second Claim:</span> {selectedAirdrop.secondClaimPercentage}%</p>
+                            <p className="text-sm text-gray-300"><span className="font-medium">Other Claims:</span> {selectedAirdrop.otherClaimPercentage}%</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {selectedAirdrop.conditions.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="text-md font-semibold text-white mb-2">Conditions</h4>
+                        <div className="space-y-2">
+                          {selectedAirdrop.conditions.map((condition, index) => (
+                            <div key={index} className="bg-gray-700 p-3 rounded">
+                              <p className="text-sm text-gray-300">Token: {condition.conditionTokenAddress}</p>
+                              <p className="text-sm text-gray-300">Min Balance: {condition.conditionMinBalance}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="whitelist-section">
+                      <h4 className="text-md font-semibold text-white mb-4">Whitelist Management</h4>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                          <label className="text-sm font-medium text-gray-300 block mb-2">Add to Whitelist (comma separated Hedera IDs)</label>
+                          <div className="flex space-x-2">
+                            <input
+                              type="text"
+                              value={whitelistAddresses}
+                              onChange={(e) => setWhitelistAddresses(e.target.value)}
+                              placeholder="0.0.1234, 0.0.5678"
+                              className="input-field flex-grow"
+                              disabled={!isConnected}
+                            />
+                            <button
+                              onClick={handleAddToWhitelist}
+                              disabled={!whitelistAddresses || loading}
+                              className="bg-green-600 hover:bg-green-700 text-white rounded px-4 py-2"
+                            >
+                              {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <Check size={20} />}
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium text-gray-300 block mb-2">Remove from Whitelist (comma separated Hedera IDs)</label>
+                          <div className="flex space-x-2">
+                            <input
+                              type="text"
+                              value={removeWhitelistAddresses}
+                              onChange={(e) => setRemoveWhitelistAddresses(e.target.value)}
+                              placeholder="0.0.1234, 0.0.5678"
+                              className="input-field flex-grow"
+                              disabled={!isConnected}
+                            />
+                            <button
+                              onClick={handleRemoveFromWhitelist}
+                              disabled={!removeWhitelistAddresses || loading}
+                              className="bg-red-600 hover:bg-red-700 text-white rounded px-4 py-2"
+                            >
+                              {loading ? <Loader2 className="animate-spin h-5 w-5" /> : <X size={20} />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Claim Airdrops Tab */}
+        {activeTab === 'claim' && (
+          <div className="claim-airdrops-tab">
+            <h2 className="text-2xl font-bold text-center text-gray-100 mb-6">Claim Airdrops</h2>
+
+            {loadingEligibleAirdrops ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
+              </div>
+            ) : eligibleAirdrops.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                {isConnected ? "No eligible airdrops available." : "Connect your wallet to view eligible airdrops."}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {eligibleAirdrops.map((airdrop) => (
+                  <div key={airdrop.id} className="airdrop-card bg-gray-800 p-4 rounded-lg border border-gray-700">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">{airdrop.title}</h3>
+                        <p className="text-sm text-gray-400">Type: {airdrop.tokenType === 0 ? 'ERC20' : 'ERC721'}</p>
+                        <p className="text-sm text-gray-400">Token: {airdrop.tokenAddress}</p>
+                        <p className="text-sm text-gray-400">
+                          Expires: {new Date(airdrop.expirationTime * 1000).toLocaleString()}
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          Status: {airdrop.isActive ? (
+                            <span className="text-green-400">Active</span>
+                          ) : (
+                            <span className="text-red-400">Inactive</span>
+                          )}
+                        </p>
+                        {airdrop.tokenType === 0 ? (
+                          <p className="text-sm text-gray-400">
+                            Claimable: {ethers.formatUnits(airdrop.claimableAmount, DECIMALS)} tokens
+                          </p>
+                        ) : (
+                          <p className="text-sm text-gray-400">
+                            Available NFTs: {airdrop.availableNftIds.length}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleClaimTokens(airdrop.id)}
+                        disabled={loading}
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-2"
+                      >
+                        {loading ? <Loader2 className="animate-spin h-5 w-5" /> : 'Claim'}
+                      </button>
+                    </div>
+
+                    {airdrop.conditions.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-semibold text-gray-300 mb-1">Conditions:</h4>
+                        <ul className="space-y-1">
+                          {airdrop.conditions.map((condition, index) => (
+                            <li key={index} className="text-xs text-gray-400">
+                              Hold at least {ethers.formatUnits(condition.conditionMinBalance, DECIMALS)} of token {condition.conditionTokenAddress}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {airdrop.isWhitelisted && (
+                      <div className="mt-2 text-xs text-green-400">
+                        You are whitelisted for this airdrop
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      <style jsx>{`
+  .airdrop-system-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  .airdrop-system-card {
+    background-color: #2a2a3a;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  .wallet-section {
+    margin-bottom: 1.5rem;
+  }
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid #3a3a4a;
+    margin-bottom: 1.5rem;
+  }
+  .tab-button {
+    padding: 0.75rem 1.5rem;
+    background: none;
+    border: none;
+    color: #c0c0d0;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-button.active {
+    color: #ffffff;
+    border-bottom-color: #4a90e2;
+  }
+  .alert-error {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ef9a9a;
+  }
+  .alert-status {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #a5d6a7;
+  }
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  .input-field {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #3a3a4a;
+    border: 1px solid #5a5a6a;
+    border-radius: 0.5rem;
+    color: #ffffff;
+    margin-top: 0.25rem;
+  }
+  .input-field:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .conditions-section {
+    margin-top: 1.5rem;
+  }
+  .condition-item {
+    margin-bottom: 1rem;
+    background-color: #3a3a4a;
+  }
+  .percentage-rules {
+    background-color: #3a3a4a;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .airdrop-card {
+    transition: all 0.2s ease;
+    background-color: #3a3a4a;
+  }
+  .airdrop-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  .selected-airdrop-details {
+    margin-top: 1.5rem;
+    background-color: #3a3a4a;
+  }
+  .whitelist-section {
+    margin-top: 1.5rem;
+  }
+
+  /* Text colors */
+  .text-gray-100 {
+    color: #ffffff;
+  }
+  .text-gray-300 {
+    color: #e0e0e0;
+  }
+  .text-gray-400 {
+    color: #b0b0b0;
+  }
+  .text-white {
+    color: #ffffff;
+  }
+  .text-blue-500 {
+    color: #4a90e2;
+  }
+  .text-green-400 {
+    color: #66bb6a;
+  }
+  .text-red-400 {
+    color: #ef5350;
+  }
+  .text-green-500 {
+    color: #4caf50;
+  }
+  .text-red-500 {
+    color: #f44336;
+  }
+
+  /* Button colors */
+  .bg-blue-600 {
+    background-color: #4a90e2;
+  }
+  .hover\:bg-blue-700:hover {
+    background-color: #3a80d2;
+  }
+  .bg-red-600 {
+    background-color: #ef5350;
+  }
+  .hover\:bg-red-700:hover {
+    background-color: #e53935;
+  }
+  .bg-green-600 {
+    background-color: #66bb6a;
+  }
+  .hover\:bg-green-700:hover {
+    background-color: #57a75a;
+  }
+`}</style>
+
+
+
     </div>
   );
 }

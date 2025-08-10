@@ -1,23 +1,5 @@
 [
 	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_airdropId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address[]",
-				"name": "_users",
-				"type": "address[]"
-			}
-		],
-		"name": "addToWhitelist",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"stateMutability": "nonpayable",
 		"type": "constructor"
@@ -111,6 +93,168 @@
 		"type": "event"
 	},
 	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "airdropId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "pausedBy",
+				"type": "address"
+			}
+		],
+		"name": "AirdropPaused",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "airdropId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "resumedBy",
+				"type": "address"
+			}
+		],
+		"name": "AirdropResumed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "airdropId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "claimant",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "nftId",
+				"type": "uint256"
+			}
+		],
+		"name": "NftClaimed",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "previousOwner",
+				"type": "address"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "OwnershipTransferred",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "uint256",
+				"name": "airdropId",
+				"type": "uint256"
+			},
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "claimant",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "TokensClaimed",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address[]",
+				"name": "_users",
+				"type": "address[]"
+			}
+		],
+		"name": "addToWhitelist",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "airdropCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "_user",
+				"type": "address"
+			}
+		],
+		"name": "canClaim",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "uint256",
@@ -147,6 +291,11 @@
 			},
 			{
 				"components": [
+					{
+						"internalType": "enum AirdropSystem.ConditionType",
+						"name": "conditionType",
+						"type": "uint8"
+					},
 					{
 						"internalType": "address",
 						"name": "conditionTokenAddress",
@@ -213,6 +362,11 @@
 			{
 				"components": [
 					{
+						"internalType": "enum AirdropSystem.ConditionType",
+						"name": "conditionType",
+						"type": "uint8"
+					},
+					{
 						"internalType": "address",
 						"name": "conditionTokenAddress",
 						"type": "address"
@@ -252,139 +406,6 @@
 		"type": "function"
 	},
 	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "airdropId",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "claimant",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "nftId",
-				"type": "uint256"
-			}
-		],
-		"name": "NftClaimed",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "previousOwner",
-				"type": "address"
-			},
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "newOwner",
-				"type": "address"
-			}
-		],
-		"name": "OwnershipTransferred",
-		"type": "event"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_airdropId",
-				"type": "uint256"
-			},
-			{
-				"internalType": "address[]",
-				"name": "_users",
-				"type": "address[]"
-			}
-		],
-		"name": "removeFromWhitelist",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "renounceOwnership",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "uint256",
-				"name": "airdropId",
-				"type": "uint256"
-			},
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "claimant",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "TokensClaimed",
-		"type": "event"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "newOwner",
-				"type": "address"
-			}
-		],
-		"name": "transferOwnership",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_airdropId",
-				"type": "uint256"
-			}
-		],
-		"name": "withdrawRemainingTokens",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "airdropCount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [
 			{
 				"internalType": "uint256",
@@ -397,12 +418,116 @@
 				"type": "address"
 			}
 		],
-		"name": "canClaim",
+		"name": "getAirdropDetails",
 		"outputs": [
 			{
-				"internalType": "bool",
+				"components": [
+					{
+						"internalType": "uint256",
+						"name": "id",
+						"type": "uint256"
+					},
+					{
+						"internalType": "enum AirdropSystem.TokenType",
+						"name": "tokenType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "address",
+						"name": "tokenAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "tokenId",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "title",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "expirationTime",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalTokens",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "claimedTokens",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isActive",
+						"type": "bool"
+					},
+					{
+						"internalType": "bool",
+						"name": "isPaused",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256",
+						"name": "claimableAmount",
+						"type": "uint256"
+					},
+					{
+						"components": [
+							{
+								"internalType": "enum AirdropSystem.ConditionType",
+								"name": "conditionType",
+								"type": "uint8"
+							},
+							{
+								"internalType": "address",
+								"name": "conditionTokenAddress",
+								"type": "address"
+							},
+							{
+								"internalType": "uint256",
+								"name": "conditionMinBalance",
+								"type": "uint256"
+							}
+						],
+						"internalType": "struct AirdropSystem.Condition[]",
+						"name": "conditions",
+						"type": "tuple[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "firstClaimPercentage",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "secondClaimPercentage",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "otherClaimPercentage",
+						"type": "uint256"
+					},
+					{
+						"internalType": "bool",
+						"name": "isWhitelisted",
+						"type": "bool"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "availableNftIds",
+						"type": "uint256[]"
+					}
+				],
+				"internalType": "struct AirdropSystem.AirdropDetails",
 				"name": "",
-				"type": "bool"
+				"type": "tuple"
 			}
 		],
 		"stateMutability": "view",
@@ -466,12 +591,22 @@
 						"type": "bool"
 					},
 					{
+						"internalType": "bool",
+						"name": "isPaused",
+						"type": "bool"
+					},
+					{
 						"internalType": "uint256",
 						"name": "claimableAmount",
 						"type": "uint256"
 					},
 					{
 						"components": [
+							{
+								"internalType": "enum AirdropSystem.ConditionType",
+								"name": "conditionType",
+								"type": "uint8"
+							},
 							{
 								"internalType": "address",
 								"name": "conditionTokenAddress",
@@ -592,12 +727,22 @@
 						"type": "bool"
 					},
 					{
+						"internalType": "bool",
+						"name": "isPaused",
+						"type": "bool"
+					},
+					{
 						"internalType": "uint256",
 						"name": "claimableAmount",
 						"type": "uint256"
 					},
 					{
 						"components": [
+							{
+								"internalType": "enum AirdropSystem.ConditionType",
+								"name": "conditionType",
+								"type": "uint8"
+							},
 							{
 								"internalType": "address",
 								"name": "conditionTokenAddress",
@@ -648,6 +793,25 @@
 		"type": "function"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			}
+		],
+		"name": "isAirdropPaused",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [],
 		"name": "owner",
 		"outputs": [
@@ -658,6 +822,83 @@
 			}
 		],
 		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			}
+		],
+		"name": "pauseAirdrop",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address[]",
+				"name": "_users",
+				"type": "address[]"
+			}
+		],
+		"name": "removeFromWhitelist",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "renounceOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			}
+		],
+		"name": "resumeAirdrop",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newOwner",
+				"type": "address"
+			}
+		],
+		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_airdropId",
+				"type": "uint256"
+			}
+		],
+		"name": "withdrawRemainingTokens",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	}
 ]
