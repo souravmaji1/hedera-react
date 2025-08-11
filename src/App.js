@@ -16,8 +16,8 @@ import { ethers } from 'ethers';
 import CONTRACT_ABI from './abi.json';
 
 const DECIMALS = 8; // Decimal places for the token
-const CONTRACT_ID = ContractId.fromString("0.0.6540408"); // Replace with your AirdropSystem contract ID
-const CONTRACT_ADDRESS = "0xb3cd9531395a734bab3d1f014ff3c6c21cb01064"; // Replace with your contract's Solidity address
+const CONTRACT_ID = ContractId.fromString("0.0.6546323"); // Replace with your AirdropSystem contract ID
+const CONTRACT_ADDRESS = "0x5C4BbBdfeE4c7E3dF5a037833c8cda544a4546Cf"; // Replace with your contract's Solidity address
 
 export default function AirdropSystem() {
   // Wallet connection state
@@ -80,6 +80,8 @@ export default function AirdropSystem() {
   }
 }
 
+
+
   // Connect wallet handler
   const handleConnectWallet = async () => {
     try {
@@ -114,6 +116,8 @@ export default function AirdropSystem() {
       setLoading(true);
       setError('');
       setTransactionStatus('Approving tokens...');
+
+      
 
       const tokenInfo = await fetchTokenInfo(tokenAddress);
       const decimals = tokenInfo.decimals;
@@ -189,8 +193,8 @@ export default function AirdropSystem() {
       setTransactionStatus('Creating airdrop...');
 
       const tokenAccountId = AccountId.fromString(tokenAddress);
-     // const tokenSolidityAddress = `0x${tokenAccountId.toSolidityAddress()}`;
-      const tokenSolidityAddress  = await getEvmAddressFromAccountId(accountId.toString());
+     const tokenSolidityAddress = `0x${tokenAccountId.toSolidityAddress()}`;
+     // const tokenSolidityAddress  = await getEvmAddressFromAccountId(tokenAddress);
       const expirationTimestamp = Math.floor(new Date(expirationTime).getTime() / 1000);
 
       const formattedConditions = await Promise.all(conditions.map(async (condition) => {
@@ -207,6 +211,8 @@ export default function AirdropSystem() {
 
       if (airdropType === 'ERC20') {
         const totalTokensInDecimals = Math.floor(Number(totalTokens) * (10 ** decimals));
+
+        console.log(tokenSolidityAddress, tokenAccountId, totalTokensInDecimals)
         
         await writeContract({
           contractId: CONTRACT_ID,
@@ -214,7 +220,7 @@ export default function AirdropSystem() {
           functionName: 'createERC20Airdrop',
           args: [
             tokenSolidityAddress,
-            nftTokenId || "",
+            tokenAccountId || "",
             expirationTimestamp,
             totalTokensInDecimals,
             formattedConditions,
@@ -1023,13 +1029,13 @@ export default function AirdropSystem() {
                                 {loading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Pause'}
                               </button>
                             )}
-                            <button
+                          {/* <button
                               onClick={() => handleDeactivateAirdrop(selectedAirdrop.id)}
                               className="bg-red-600 hover:bg-red-700 text-white rounded px-3 py-1 text-sm"
                               disabled={loading}
                             >
                               Deactivate
-                            </button>
+                            </button> */}
                           </>
                         )}
                       </div>
