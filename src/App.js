@@ -351,55 +351,62 @@ export default function AirdropSystem() {
     setError('');
     
     const contract = getContractInstance();
-   // const accountSolidityAddress = `0x${AccountId.fromString(accountId.toString()).toSolidityAddress()}`;
- const accountSolidityAddress  = await getEvmAddressFromAccountId(accountId.toString());
-
-    console.log(accountSolidityAddress)
+    const accountSolidityAddress = await getEvmAddressFromAccountId(accountId.toString());
     
     const result = await contract.getEligibleAirdrops(accountSolidityAddress);
-    console.log(result)
     
-    const formattedAirdrops = result.map(airdrop => {
-      let conditions = [];
-      try {
-        conditions = airdrop[11].map(cond => ({
-          conditionType: Number(cond[0]),
-          conditionTokenAddress: cond[1],
-          conditionMinBalance: Number(cond[2])
-        }));
-      } catch (e) {
-        console.error('Error parsing conditions:', e);
-      }
+    // Fetch token info for each airdrop
+    const airdropsWithTokenInfo = await Promise.all(
+      result.map(async (airdrop) => {
+        let tokenInfo = { decimals: 8, symbol: '' };
+        try {
+          tokenInfo = await fetchTokenInfo(airdrop[3]); // airdrop[3] is the tokenId
+        } catch (e) {
+          console.error('Error fetching token info:', e);
+        }
 
-      let availableNftIds = [];
-      try {
-        availableNftIds = airdrop[16]?.map(id => Number(id)) || [];
-      } catch (e) {
-        console.error('Error parsing NFT IDs:', e);
-      }
+        let conditions = [];
+        try {
+          conditions = airdrop[11].map(cond => ({
+            conditionType: Number(cond[0]),
+            conditionTokenAddress: cond[1],
+            conditionMinBalance: Number(cond[2])
+          }));
+        } catch (e) {
+          console.error('Error parsing conditions:', e);
+        }
 
-      return {
-        id: Number(airdrop[0]),
-        tokenType: Number(airdrop[1]),
-        tokenAddress: airdrop[2],
-        tokenId: airdrop[3],
-        title: airdrop[4],
-        expirationTime: Number(airdrop[5]),
-        totalTokens: Number(airdrop[6]),
-        claimedTokens: Number(airdrop[7]),
-        isActive: airdrop[8],
-        isPaused: airdrop[9],
-        claimableAmount: Number(airdrop[10]),
-        firstClaimPercentage: Number(airdrop[12]),
-        secondClaimPercentage: Number(airdrop[13]),
-        otherClaimPercentage: Number(airdrop[14]),
-        isWhitelisted: airdrop[15],
-        conditions: conditions,
-        availableNftIds: availableNftIds
-      };
-    });
+        let availableNftIds = [];
+        try {
+          availableNftIds = airdrop[16]?.map(id => Number(id)) || [];
+        } catch (e) {
+          console.error('Error parsing NFT IDs:', e);
+        }
 
-    setEligibleAirdrops(formattedAirdrops);
+        return {
+          id: Number(airdrop[0]),
+          tokenType: Number(airdrop[1]),
+          tokenAddress: airdrop[2],
+          tokenId: airdrop[3],
+          title: airdrop[4],
+          expirationTime: Number(airdrop[5]),
+          totalTokens: Number(airdrop[6]),
+          claimedTokens: Number(airdrop[7]),
+          isActive: airdrop[8],
+          isPaused: airdrop[9],
+          claimableAmount: Number(airdrop[10]),
+          firstClaimPercentage: Number(airdrop[12]),
+          secondClaimPercentage: Number(airdrop[13]),
+          otherClaimPercentage: Number(airdrop[14]),
+          isWhitelisted: airdrop[15],
+          conditions: conditions,
+          availableNftIds: availableNftIds,
+          tokenInfo: tokenInfo // Include token info
+        };
+      })
+    );
+
+    setEligibleAirdrops(airdropsWithTokenInfo);
   } catch (err) {
     console.error('Error fetching eligible airdrops:', err);
     setError(`Failed to fetch eligible airdrops: ${err.message}`);
@@ -619,21 +626,23 @@ export default function AirdropSystem() {
   };
 
   // Fetch token info from mirror node
+  
+
   async function fetchTokenInfo(tokenId) {
-    try {
-      const response = await fetch(`https://testnet.mirrornode.hedera.com/api/v1/tokens/${tokenId}`);
-      if (!response.ok) throw new Error(`Failed to fetch token info: ${response.status}`);
-      const data = await response.json();
-      return {
-        decimals: data.decimals || 8,
-        symbol: data.symbol,
-        name: data.name
-      };
-    } catch (error) {
-      console.error('Error fetching token info:', error);
-      return { decimals: 8, symbol: '', name: '' };
-    }
+  try {
+    const response = await fetch(`https://testnet.mirrornode.hedera.com/api/v1/tokens/${tokenId}`);
+    if (!response.ok) throw new Error(`Failed to fetch token info: ${response.status}`);
+    const data = await response.json();
+    return {
+      decimals: Number(data.decimals || 8), // Ensure this is a number
+      symbol: data.symbol || '',
+      name: data.name || ''
+    };
+  } catch (error) {
+    console.error('Error fetching token info:', error);
+    return { decimals: 8, symbol: '', name: '' }; // Default to 8 decimals
   }
+}
 
   // Fetch data when wallet connects or tab changes
   useEffect(() => {
@@ -1172,14 +1181,14 @@ export default function AirdropSystem() {
                           )}
                         </p>
                         {airdrop.tokenType === 0 ? (
-                          <p className="text-sm text-gray-400">
-                            Claimable: {ethers.formatUnits(airdrop.claimableAmount, DECIMALS)} tokens
-                          </p>
-                        ) : (
-                          <p className="text-sm text-gray-400">
-                            Available NFTs: {airdrop.availableNftIds.length}
-                          </p>
-                        )}
+                  <p className="text-sm text-gray-400">
+                    Claimable: {ethers.formatUnits(airdrop.claimableAmount, airdrop.tokenInfo.decimals)} {airdrop.tokenInfo.symbol || 'tokens'}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-400">
+                    Available NFTs: {airdrop.availableNftIds.length}
+                  </p>
+                )}
                       </div>
                       <button
                         onClick={() => handleClaimTokens(airdrop.id)}
