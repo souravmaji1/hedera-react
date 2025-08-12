@@ -747,6 +747,34 @@
 		"type": "function"
 	},
 	{
+		"inputs": [],
+		"name": "getAllUnclaimedTokens",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "unclaimedAmounts",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "address[]",
+				"name": "tokenAddresses",
+				"type": "address[]"
+			},
+			{
+				"internalType": "uint8[]",
+				"name": "tokenTypes",
+				"type": "uint8[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "airdropIds",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "address",

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ContractId, AccountId } from "@hashgraph/sdk";
 import { Loader2, PlusCircle, Trash2, Check, X } from 'lucide-react';
 import { 
@@ -16,8 +16,8 @@ import { ethers } from 'ethers';
 import CONTRACT_ABI from './abi.json';
 
 const DECIMALS = 8; // Decimal places for the token
-const CONTRACT_ID = ContractId.fromString("0.0.6546323"); // Replace with your AirdropSystem contract ID
-const CONTRACT_ADDRESS = "0x5C4BbBdfeE4c7E3dF5a037833c8cda544a4546Cf"; // Replace with your contract's Solidity address
+const CONTRACT_ID = ContractId.fromString("0.0.6554205"); // Replace with your AirdropSystem contract ID
+const CONTRACT_ADDRESS = "0xdf777a45faf3c6b30e199391948648984b271462"; // Replace with your contract's Solidity address
 
 export default function AirdropSystem() {
   // Wallet connection state
@@ -44,7 +44,7 @@ export default function AirdropSystem() {
   const [otherClaimPercentage, setOtherClaimPercentage] = useState('0');
   const [nftSerials, setNftSerials] = useState('');
   const [nftTokenId, setNftTokenId] = useState('');
-
+const [blockTimestamp, setBlockTimestamp] = useState(Math.floor(Date.now() / 1000));
   // My Airdrops state
   const [myAirdrops, setMyAirdrops] = useState([]);
   const [loadingMyAirdrops, setLoadingMyAirdrops] = useState(false);
@@ -60,6 +60,17 @@ export default function AirdropSystem() {
   const { readContract } = useReadContract();
   const { approve: approveToken } = useApproveTokenAllowance();
   const { approve: approveNft } = useApproveTokenNftAllowance();
+
+  const [contractOwner, setContractOwner] = useState(null);
+const [unclaimedTokens, setUnclaimedTokens] = useState(null);
+
+  useEffect(() => {
+  const interval = setInterval(() => {
+    setBlockTimestamp(Math.floor(Date.now() / 1000)); // Current Unix timestamp
+  }, 10_000); // Update every 10 seconds
+
+  return () => clearInterval(interval);
+}, []);
 
   const getEvmAddressFromAccountId = async (accountId) => {
   try {
@@ -79,6 +90,87 @@ export default function AirdropSystem() {
     throw error;
   }
 }
+
+useEffect(() => {
+  const fetchContractOwner = async () => {
+    try {
+      const provider = new ethers.JsonRpcProvider("https://testnet.hashio.io/api");
+      const contract = new ethers.Contract(
+  CONTRACT_ADDRESS, // Solidity address of the contract (0x...)
+  CONTRACT_ABI,
+  provider
+);
+      const owner = await contract.owner(); // Call the owner() function
+      setContractOwner(owner.toLowerCase()); // Store in lowercase for comparison
+    } catch (err) {
+      console.error("Failed to fetch contract owner:", err);
+      setContractOwner(null);
+    }
+  };
+
+  fetchContractOwner();
+}, []);
+
+const [userEvmAddress, setUserEvmAddress] = useState(null);
+
+// Fetch the user's EVM address when accountId changes
+useEffect(() => {
+  if (!accountId) return;
+
+  const fetchUserEvmAddress = async () => {
+    try {
+      const evmAddress = await getEvmAddressFromAccountId(accountId.toString());
+      setUserEvmAddress(evmAddress.toLowerCase());
+    } catch (err) {
+      console.error("Failed to fetch user EVM address:", err);
+      setUserEvmAddress(null);
+    }
+  };
+
+  fetchUserEvmAddress();
+  fetchUnclaimedTokens();
+}, [accountId]);
+
+// Check if the user is the owner
+const isOwner = useMemo(() => {
+  if (!userEvmAddress || !contractOwner) return false;
+  return userEvmAddress === contractOwner;
+}, [userEvmAddress, contractOwner]);
+
+  
+
+
+// Update your admin tab component
+const fetchUnclaimedTokens = async () => {
+  try {
+    const contract = getContractInstance();
+    const result = await contract.getAllUnclaimedTokens();
+    
+    if (!result || result.length < 4) {
+      setUnclaimedTokens(null);
+      return null;
+    }
+    
+    const unclaimedAmounts = result[0].map(bn => Number(bn));
+    const tokenAddresses = result[1];
+    const tokenTypes = result[2].map(num => Number(num));
+    const airdropIds = result[3].map(num => Number(num));
+    
+    const data = {
+      unclaimedAmounts,
+      tokenAddresses, 
+      tokenTypes,
+      airdropIds
+    };
+    
+    setUnclaimedTokens(data);
+    return data;
+  } catch (err) {
+    console.error("Error fetching unclaimed tokens:", err);
+    setUnclaimedTokens(null);
+    return null;
+  }
+};
 
 
 
@@ -471,6 +563,36 @@ export default function AirdropSystem() {
     }
   };
 
+ 
+
+const handleWithdrawRemaining = async (airdropId) => {
+  try {
+    setLoading(true);
+    setError('');
+    setTransactionStatus('Withdrawing unclaimed tokens...');
+
+    // Use HashPack's writeContract method
+    await writeContract({
+      contractId: CONTRACT_ID, // Hedera Contract ID (0.0.x)
+      abi: CONTRACT_ABI,
+      functionName: 'withdrawRemainingTokens',
+      args: [airdropId],
+      metaArgs: {
+        gas: 1_000_000, // Gas limit (adjust if needed)
+        maxPriorityFeePerGas: 100_000_000, // Tinybars (100 hbar cents)
+      },
+    });
+
+    setTransactionStatus('Tokens withdrawn successfully!');
+    fetchMyAirdrops(); // Refresh the list
+  } catch (err) {
+    console.error('Error withdrawing tokens:', err);
+    setError(`Failed to withdraw tokens: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
   // Deactivate an airdrop
   const handleDeactivateAirdrop = async (airdropId) => {
     try {
@@ -702,6 +824,15 @@ export default function AirdropSystem() {
           >
             Claim Airdrops
           </button>
+
+             {isConnected && isOwner && (
+  <button 
+    onClick={() => setActiveTab('admin')}
+    className={`tab-button ${activeTab === 'admin' ? 'active' : ''}`}
+  >
+    Admin
+  </button>
+)}
         </div>
 
         {/* Status Messages */}
@@ -1143,6 +1274,108 @@ export default function AirdropSystem() {
             )}
           </div>
         )}
+
+     
+
+{activeTab === 'admin' && (
+  <div className="admin-tab">
+    <h2 className="text-2xl font-bold text-center text-gray-100 mb-6">Admin Dashboard</h2>
+    
+    <div className="mb-6">
+      <h3 className="text-xl font-semibold text-white mb-4">Withdraw Unclaimed Tokens</h3>
+      
+      <button 
+        onClick={async () => {
+          try {
+            setLoading(true);
+            await fetchUnclaimedTokens();
+          } finally {
+            setLoading(false);
+          }
+        }}
+        disabled={loading}
+        className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
+      >
+        {loading ? <Loader2 className="animate-spin h-5 w-5" /> : 'Refresh Unclaimed Tokens'}
+      </button>
+
+      {loading ? (
+        <div className="flex justify-center items-center py-8">
+          <Loader2 className="animate-spin h-8 w-8 text-blue-500" />
+        </div>
+      ) : unclaimedTokens && unclaimedTokens.unclaimedAmounts ? (
+        unclaimedTokens.unclaimedAmounts.length > 0 ? (
+          <div className="space-y-4">
+            {unclaimedTokens.unclaimedAmounts.map((amount, index) => (
+              <div key={index} className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-400">Airdrop ID:</p>
+                    <p className="text-white">{unclaimedTokens.airdropIds[index]}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Token Address:</p>
+                    <p className="text-white">{unclaimedTokens.tokenAddresses[index]}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Token Type:</p>
+                    <p className="text-white">
+                      {unclaimedTokens.tokenTypes[index] === 0 ? 'ERC20' : 'ERC721'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400">Unclaimed Amount:</p>
+                    <p className="text-white">{amount.toString()}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      setLoading(true);
+                      setError('');
+                      setTransactionStatus(`Withdrawing from airdrop ${unclaimedTokens.airdropIds[index]}...`);
+                      
+                      await writeContract({
+                        contractId: CONTRACT_ID,
+                        abi: CONTRACT_ABI,
+                        functionName: 'withdrawRemainingTokens',
+                        args: [unclaimedTokens.airdropIds[index]],
+                        metaArgs: {
+                          gas: 1_000_000,
+                          maxPriorityFeePerGas: 100_000_000,
+                        },
+                      });
+
+                      setTransactionStatus('Tokens withdrawn successfully!');
+                      fetchUnclaimedTokens(); // Refresh the list
+                    } catch (err) {
+                      console.error('Error withdrawing tokens:', err);
+                      setError(`Failed to withdraw tokens: ${err.message}`);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  disabled={loading || amount === 0}
+                  className="mt-3 bg-red-600 hover:bg-red-700 text-white rounded px-4 py-2 text-sm"
+                >
+                  {loading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Withdraw'}
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-400">
+            No unclaimed tokens available
+          </div>
+        )
+      ) : (
+        <div className="text-center py-8 text-gray-400">
+          No unclaimed tokens data available
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
         {/* Claim Airdrops Tab */}
         {activeTab === 'claim' && (

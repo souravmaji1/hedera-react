@@ -563,6 +563,55 @@ contract AirdropSystem is Ownable(msg.sender) {
     }
 
     /**
+ * @notice Get unclaimed token/NFT details for an airdrop (admin view)
+ * @param _airdropId The ID of the airdrop to check
+ * @return unclaimedAmount The amount of unclaimed tokens (for ERC20) or count of unclaimed NFTs (for ERC721)
+ * @return tokenAddress The token contract address
+ * @return tokenType The type of token (0 = ERC20, 1 = ERC721)
+ */
+/**
+ * @notice Get unclaimed token/NFT details for all airdrops (admin view)
+ * @return unclaimedAmounts Array of unclaimed amounts (for ERC20) or counts (for ERC721)
+ * @return tokenAddresses Array of token contract addresses
+ * @return tokenTypes Array of token types (0 = ERC20, 1 = ERC721)
+ * @return airdropIds Array of corresponding airdrop IDs
+ */
+
+ 
+function getAllUnclaimedTokens() external view returns (
+    uint256[] memory unclaimedAmounts,
+    address[] memory tokenAddresses,
+    uint8[] memory tokenTypes,
+    uint256[] memory airdropIds
+) {
+    unclaimedAmounts = new uint256[](airdropCount);
+    tokenAddresses = new address[](airdropCount);
+    tokenTypes = new uint8[](airdropCount);
+    airdropIds = new uint256[](airdropCount);
+    
+    for (uint256 i = 1; i <= airdropCount; i++) {
+        Airdrop storage airdrop = airdrops[i];
+        
+        airdropIds[i-1] = i;
+        tokenAddresses[i-1] = airdrop.basic.tokenAddress;
+        tokenTypes[i-1] = uint8(airdrop.basic.tokenType);
+        
+        if (airdrop.basic.tokenType == TokenType.ERC20) {
+            unclaimedAmounts[i-1] = airdrop.basic.totalTokens - airdrop.basic.claimedTokens;
+        } else {
+            // Count unclaimed NFTs
+            uint256 unclaimedCount = 0;
+            for (uint256 j = 0; j < airdrop.basic.nftIds.length; j++) {
+                if (!airdrop.claimedNfts[airdrop.basic.nftIds[j]]) {
+                    unclaimedCount++;
+                }
+            }
+            unclaimedAmounts[i-1] = unclaimedCount;
+        }
+    }
+}
+
+    /**
      * @notice Check if an airdrop is paused
      */
     function isAirdropPaused(uint256 _airdropId) external view returns (bool) {
