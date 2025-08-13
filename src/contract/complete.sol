@@ -10,10 +10,12 @@ contract AirdropSystem is Ownable(msg.sender) {
     using SafeERC20 for IERC20;
 
     enum TokenType { ERC20, ERC721 }
+    enum ConditionType { ERC20_BALANCE, NFT_COLLECTION }
 
     struct Condition {
+        ConditionType conditionType;
         address conditionTokenAddress;
-        uint256 conditionMinBalance;
+        uint256 conditionMinBalance; // For ERC20: min balance required, For NFT: min NFTs required (usually 1)
     }
 
     struct AirdropBasic {
@@ -25,6 +27,7 @@ contract AirdropSystem is Ownable(msg.sender) {
         uint256 totalTokens;
         uint256 claimedTokens;
         bool isActive;
+        bool isPaused;
         address creator;
         uint256 firstClaimPercentage;
         uint256 secondClaimPercentage;
@@ -43,6 +46,7 @@ contract AirdropSystem is Ownable(msg.sender) {
         uint256 totalTokens;
         uint256 claimedTokens;
         bool isActive;
+        bool isPaused;
         uint256 claimableAmount;
         Condition[] conditions;
         uint256 firstClaimPercentage;
@@ -73,6 +77,9 @@ contract AirdropSystem is Ownable(msg.sender) {
         string title,
         address indexed creator
     );
+
+    event AirdropPaused(uint256 indexed airdropId, address indexed pausedBy);
+    event AirdropResumed(uint256 indexed airdropId, address indexed resumedBy);
 
     event TokensClaimed(uint256 indexed airdropId, address indexed claimant, uint256 amount);
     event NftClaimed(uint256 indexed airdropId, address indexed claimant, uint256 nftId);
@@ -117,13 +124,13 @@ contract AirdropSystem is Ownable(msg.sender) {
             totalTokens: _totalTokens,
             claimedTokens: 0,
             isActive: true,
+            isPaused: false,
             creator: msg.sender,
             firstClaimPercentage: _firstClaimPercentage,
             secondClaimPercentage: _secondClaimPercentage,
             otherClaimPercentage: _otherClaimPercentage,
             claimCount: 0,
-           nftIds: new uint256[](0)  // Initialize empty array
-
+            nftIds: new uint256[](0)  // Initialize empty array
         });
 
         // copy conditions into storage
@@ -183,6 +190,7 @@ contract AirdropSystem is Ownable(msg.sender) {
             totalTokens: _nftIds.length,
             claimedTokens: 0,
             isActive: true,
+            isPaused: false,
             creator: msg.sender,
             firstClaimPercentage: 0,
             secondClaimPercentage: 0,
@@ -208,6 +216,38 @@ contract AirdropSystem is Ownable(msg.sender) {
     }
 
     /**
+     * @notice Pause an airdrop - only creator or owner can pause
+     */
+    function pauseAirdrop(uint256 _airdropId) external {
+        Airdrop storage airdrop = airdrops[_airdropId];
+        require(airdrop.basic.isActive, "Airdrop not active");
+        require(
+            msg.sender == airdrop.basic.creator || msg.sender == owner(),
+            "Only creator or owner can pause"
+        );
+        require(!airdrop.basic.isPaused, "Already paused");
+
+        airdrop.basic.isPaused = true;
+        emit AirdropPaused(_airdropId, msg.sender);
+    }
+
+    /**
+     * @notice Resume a paused airdrop - only creator or owner can resume
+     */
+    function resumeAirdrop(uint256 _airdropId) external {
+        Airdrop storage airdrop = airdrops[_airdropId];
+        require(airdrop.basic.isActive, "Airdrop not active");
+        require(
+            msg.sender == airdrop.basic.creator || msg.sender == owner(),
+            "Only creator or owner can resume"
+        );
+        require(airdrop.basic.isPaused, "Not paused");
+
+        airdrop.basic.isPaused = false;
+        emit AirdropResumed(_airdropId, msg.sender);
+    }
+
+    /**
      * @dev Validates percentages. Allows zeros for second/other.
      */
     function _validatePercentages(
@@ -217,7 +257,6 @@ contract AirdropSystem is Ownable(msg.sender) {
     ) private pure {
         require(_first <= 100 && _second <= 100 && _other <= 100, "Invalid percent >100");
         require(_first + _second + _other <= 100, "Sum of percentages must be <= 100");
-        // first can be zero theoretically; but leaving it to the caller to set valid percentages.
     }
 
     function addToWhitelist(uint256 _airdropId, address[] memory _users) external {
@@ -239,6 +278,7 @@ contract AirdropSystem is Ownable(msg.sender) {
     function claimTokens(uint256 _airdropId) external {
         Airdrop storage airdrop = airdrops[_airdropId];
         require(airdrop.basic.isActive, "Airdrop not active");
+        require(!airdrop.basic.isPaused, "Airdrop is paused");
         require(block.timestamp <= airdrop.basic.expirationTime, "Airdrop expired");
         require(!airdrop.hasClaimed[msg.sender], "Already claimed");
 
@@ -256,12 +296,23 @@ contract AirdropSystem is Ownable(msg.sender) {
     function _checkConditions(Airdrop storage airdrop, address user) private view {
         for (uint256 i = 0; i < airdrop.conditions.length; i++) {
             Condition memory condition = airdrop.conditions[i];
-            if (condition.conditionTokenAddress != address(0)) {
-                IERC20 conditionToken = IERC20(condition.conditionTokenAddress);
-                require(
-                    conditionToken.balanceOf(user) >= condition.conditionMinBalance,
-                    "Condition token balance too low"
-                );
+            
+            if (condition.conditionType == ConditionType.ERC20_BALANCE) {
+                if (condition.conditionTokenAddress != address(0)) {
+                    IERC20 conditionToken = IERC20(condition.conditionTokenAddress);
+                    require(
+                        conditionToken.balanceOf(user) >= condition.conditionMinBalance,
+                        "ERC20 condition not met: insufficient balance"
+                    );
+                }
+            } else if (condition.conditionType == ConditionType.NFT_COLLECTION) {
+                if (condition.conditionTokenAddress != address(0)) {
+                    IERC721 nftCollection = IERC721(condition.conditionTokenAddress);
+                    require(
+                        nftCollection.balanceOf(user) >= condition.conditionMinBalance,
+                        "NFT collection condition not met: insufficient NFTs"
+                    );
+                }
             }
         }
     }
@@ -387,6 +438,7 @@ contract AirdropSystem is Ownable(msg.sender) {
             totalTokens: airdrop.basic.totalTokens,
             claimedTokens: airdrop.basic.claimedTokens,
             isActive: airdrop.basic.isActive,
+            isPaused: airdrop.basic.isPaused,
             claimableAmount: claimableAmount,
             conditions: conds,
             firstClaimPercentage: airdrop.basic.firstClaimPercentage,
@@ -420,6 +472,7 @@ contract AirdropSystem is Ownable(msg.sender) {
     function _isEligible(Airdrop storage airdrop, address _user) private view returns (bool) {
         if (
             !airdrop.basic.isActive ||
+            airdrop.basic.isPaused ||
             block.timestamp > airdrop.basic.expirationTime ||
             airdrop.hasClaimed[_user]
         ) {
@@ -432,10 +485,20 @@ contract AirdropSystem is Ownable(msg.sender) {
 
         for (uint256 i = 0; i < airdrop.conditions.length; i++) {
             Condition memory condition = airdrop.conditions[i];
-            if (condition.conditionTokenAddress != address(0)) {
-                IERC20 conditionToken = IERC20(condition.conditionTokenAddress);
-                if (conditionToken.balanceOf(_user) < condition.conditionMinBalance) {
-                    return false;
+            
+            if (condition.conditionType == ConditionType.ERC20_BALANCE) {
+                if (condition.conditionTokenAddress != address(0)) {
+                    IERC20 conditionToken = IERC20(condition.conditionTokenAddress);
+                    if (conditionToken.balanceOf(_user) < condition.conditionMinBalance) {
+                        return false;
+                    }
+                }
+            } else if (condition.conditionType == ConditionType.NFT_COLLECTION) {
+                if (condition.conditionTokenAddress != address(0)) {
+                    IERC721 nftCollection = IERC721(condition.conditionTokenAddress);
+                    if (nftCollection.balanceOf(_user) < condition.conditionMinBalance) {
+                        return false;
+                    }
                 }
             }
         }
@@ -489,5 +552,70 @@ contract AirdropSystem is Ownable(msg.sender) {
 
     function canClaim(uint256 _airdropId, address _user) external view returns (bool) {
         return _isEligible(airdrops[_airdropId], _user);
+    }
+
+    /**
+     * @notice Get airdrop details by ID (for viewing paused status and other details)
+     */
+    function getAirdropDetails(uint256 _airdropId, address _user) external view returns (AirdropDetails memory) {
+        require(_airdropId > 0 && _airdropId <= airdropCount, "Invalid airdrop ID");
+        return _getAirdropDetails(airdrops[_airdropId], _airdropId, _user);
+    }
+
+    /**
+ * @notice Get unclaimed token/NFT details for an airdrop (admin view)
+ * @param _airdropId The ID of the airdrop to check
+ * @return unclaimedAmount The amount of unclaimed tokens (for ERC20) or count of unclaimed NFTs (for ERC721)
+ * @return tokenAddress The token contract address
+ * @return tokenType The type of token (0 = ERC20, 1 = ERC721)
+ */
+/**
+ * @notice Get unclaimed token/NFT details for all airdrops (admin view)
+ * @return unclaimedAmounts Array of unclaimed amounts (for ERC20) or counts (for ERC721)
+ * @return tokenAddresses Array of token contract addresses
+ * @return tokenTypes Array of token types (0 = ERC20, 1 = ERC721)
+ * @return airdropIds Array of corresponding airdrop IDs
+ */
+
+ 
+function getAllUnclaimedTokens() external view returns (
+    uint256[] memory unclaimedAmounts,
+    address[] memory tokenAddresses,
+    uint8[] memory tokenTypes,
+    uint256[] memory airdropIds
+) {
+    unclaimedAmounts = new uint256[](airdropCount);
+    tokenAddresses = new address[](airdropCount);
+    tokenTypes = new uint8[](airdropCount);
+    airdropIds = new uint256[](airdropCount);
+    
+    for (uint256 i = 1; i <= airdropCount; i++) {
+        Airdrop storage airdrop = airdrops[i];
+        
+        airdropIds[i-1] = i;
+        tokenAddresses[i-1] = airdrop.basic.tokenAddress;
+        tokenTypes[i-1] = uint8(airdrop.basic.tokenType);
+        
+        if (airdrop.basic.tokenType == TokenType.ERC20) {
+            unclaimedAmounts[i-1] = airdrop.basic.totalTokens - airdrop.basic.claimedTokens;
+        } else {
+            // Count unclaimed NFTs
+            uint256 unclaimedCount = 0;
+            for (uint256 j = 0; j < airdrop.basic.nftIds.length; j++) {
+                if (!airdrop.claimedNfts[airdrop.basic.nftIds[j]]) {
+                    unclaimedCount++;
+                }
+            }
+            unclaimedAmounts[i-1] = unclaimedCount;
+        }
+    }
+}
+
+    /**
+     * @notice Check if an airdrop is paused
+     */
+    function isAirdropPaused(uint256 _airdropId) external view returns (bool) {
+        require(_airdropId > 0 && _airdropId <= airdropCount, "Invalid airdrop ID");
+        return airdrops[_airdropId].basic.isPaused;
     }
 }
